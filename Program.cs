@@ -69,10 +69,10 @@ namespace PoGoMeter
               .ThenByDescending(_ => _.lvl20CP))
             {
               Console.Write($" {(foundPokemon.attackIV + foundPokemon.defenseIV + foundPokemon.staminaIV) / (0m + maxIV + maxIV + maxIV) * 100,3:00}% {ShowIV(foundPokemon.attackIV)}/{ShowIV(foundPokemon.defenseIV)}/{ShowIV(foundPokemon.staminaIV)} Lvl {foundPokemon.lvl,-5}");
-              if (foundPokemon.lvl20CP is int lvl20CP)
-              {
-                Console.Write($" (Lvl20 {lvl20CP}CP)");
-              }
+//              if (foundPokemon.lvl20CP is int lvl20CP)
+//              {
+//                Console.Write($" (Lvl20 {lvl20CP}CP)");
+//              }
               Console.WriteLine();
             }
             Console.WriteLine();
