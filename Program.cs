@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Json;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace PoGoMeter
 {
@@ -13,15 +15,37 @@ namespace PoGoMeter
 
     static void Main(string[] args)
     {
+      var texts = new Dictionary<string, string>();
+      using (var stream = typeof(Program).Assembly.GetManifestResourceStream("PoGoMeter.PoGoAssets.static_assets.txt.merged #20.txt"))
+      using (var reader = new StreamReader(stream, Encoding.UTF8))
+      {
+        while (reader.ReadLine()?.Trim() is string line) 
+        {
+          if (line == "Entry data")
+          {
+            var match = Regex.Match(reader.ReadLine() + reader.ReadLine(), "string Key = \"(?<key>.*)\"\\s+string Translation = \"(?<value>.*)\"", RegexOptions.Multiline);
+            if (match.Success)
+            {
+              texts[match.Groups["key"].Value] = match.Groups["value"].Value;
+            }
+          }
+        }
+      }
+
       var allCPs = new List<(int pokemon, string name, int attackIV, int defenseIV, int staminaIV, decimal lvl, int CP, int? lvl20CP)>();
-      using (var resourceStream = typeof(Program).Assembly.GetManifestResourceStream("PoGoMeter.pokemon.json"))
+      using (var resourceStream = typeof(Program).Assembly.GetManifestResourceStream("PoGoMeter.PoGoAssets.gamemaster.gamemaster.json"))
       {
         var json = JsonObject.Load(resourceStream);
-        foreach (JsonValue pokemonInfo in json)
+        foreach (dynamic template in json["itemTemplates"])
         {
-          int pokemon = pokemonInfo["dex"];
-          string  name = pokemonInfo["name"];
-          var stats = pokemonInfo["stats"];
+          if (!template.ContainsKey("pokemonSettings")) continue;
+          string templateId = template["templateId"];
+          if (!(Regex.Match(templateId, @"V(?<id>\d+)_.+") is var match && match.Success)) continue;
+          var pokemon = int.Parse(match.Groups["id"].Value);
+          var name = texts[$"pokemon_name_{pokemon:0000}"];
+          var settings = template["pokemonSettings"];
+          if (settings.ContainsKey("form")) continue; // no alola currently
+          var stats = settings["stats"];
           int baseAttack = stats["baseAttack"];
           int baseDefense = stats["baseDefense"];
           int baseStamina = stats["baseStamina"];

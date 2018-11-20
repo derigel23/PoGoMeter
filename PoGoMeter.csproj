@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -10,7 +10,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="pokemon.json" />
+    <EmbeddedResource Include="PoGoAssets\gamemaster\gamemaster.json" />
+    <EmbeddedResource Include="PoGoAssets\static_assets\txt\merged #20.txt" />
   </ItemGroup>
 
   <ItemGroup>
