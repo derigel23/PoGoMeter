@@ -1,7 +1,13 @@
 {
   "profiles": {
     "PoGoMeter": {
-      "commandName": "Project"
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "launchUrl": "https://f1e2db6f.ngrok.io/refresh",
+      "applicationUrl": "http://localhost:5000/"
     }
   }
 }

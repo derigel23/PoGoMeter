@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Json;
 using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace PoGoMeter
 {
@@ -36,45 +36,52 @@ namespace PoGoMeter
       }
 
       var allCPs = new List<(int pokemon, string name, int attackIV, int defenseIV, int staminaIV, decimal lvl, int CP, int? lvl20CP)>();
-      using (var resourceStream = typeof(Program).Assembly.GetManifestResourceStream("PoGoMeter.PoGoAssets.gamemaster.gamemaster.json"))
+      using (var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PoGoMeter.PoGoAssets.gamemaster.gamemaster.json"))
+      using (var sr = new StreamReader(resourceStream))
+      using (var reader = new JsonTextReader(sr))
       {
-        var json = JsonObject.Load(resourceStream);
-        foreach (dynamic template in json["itemTemplates"])
+        var jsonSerializer = JsonSerializer.CreateDefault();
+        while (reader.Read())
         {
-          if (!template.ContainsKey("pokemonSettings")) continue;
-          string templateId = template["templateId"];
-          if (!(Regex.Match(templateId, @"V(?<id>\d+)_.+") is var match && match.Success)) continue;
-          var pokemon = int.Parse(match.Groups["id"].Value);
-          var name = texts[$"pokemon_name_{pokemon:0000}"];
-          var settings = template["pokemonSettings"];
-          if (settings.ContainsKey("form")) continue; // no alola currently
-          var stats = settings["stats"];
-          int baseAttack = stats["baseAttack"];
-          int baseDefense = stats["baseDefense"];
-          int baseStamina = stats["baseStamina"];
-          int? lvl20cp = null;
-          for (int attackIV = MaxIV; attackIV >= MinIV; attackIV--)
-          for (int defenseIV = MaxIV; defenseIV >= MinIV; defenseIV--)
-          for (int staminaIV = MaxIV; staminaIV >= MinIV; staminaIV--)
-          for (var cpmIndex = 0; cpmIndex < CPM.Length; cpmIndex++)
+          if (reader.TokenType == JsonToken.StartObject)
           {
-            var cpm = CPM[cpmIndex];
-            var attack = (baseAttack + attackIV);
-            var defense = (baseDefense + defenseIV);
-            var stamina = (baseStamina + staminaIV);
-
-            var cp = attack * Math.Sqrt(defense) * Math.Sqrt(stamina) * cpm * cpm / 10;
-            int CP = Math.Max(10, (int)Math.Floor(cp));
-            allCPs.Add((pokemon, name, attackIV, defenseIV, staminaIV, cpmIndex / 2m + 1, CP, lvl20cp));
-            if (cpmIndex == 38) // LVL20
+            if (reader.Path == "") continue;
+            dynamic template = jsonSerializer.Deserialize(reader);
+            if (!template.ContainsKey("pokemonSettings")) continue;
+            string templateId = template["templateId"];
+            if (!(Regex.Match(templateId, @"V(?<id>\d+)_.+") is var match && match.Success)) continue;
+            var pokemon = int.Parse(match.Groups["id"].Value);
+            var name = texts[$"pokemon_name_{pokemon:0000}"];
+            var settings = template["pokemonSettings"];
+            if (settings.ContainsKey("form")) continue; // no alola currently
+            var stats = settings["stats"];
+            int baseAttack = stats["baseAttack"];
+            int baseDefense = stats["baseDefense"];
+            int baseStamina = stats["baseStamina"];
+            int? lvl20cp = null;
+            for (int attackIV = MaxIV; attackIV >= MinIV; attackIV--)
+            for (int defenseIV = MaxIV; defenseIV >= MinIV; defenseIV--)
+            for (int staminaIV = MaxIV; staminaIV >= MinIV; staminaIV--)
+            for (var cpmIndex = 0; cpmIndex < CPM.Length; cpmIndex++)
             {
-              lvl20cp = CP;
+              var cpm = CPM[cpmIndex];
+              var attack = (baseAttack + attackIV);
+              var defense = (baseDefense + defenseIV);
+              var stamina = (baseStamina + staminaIV);
+
+              var cp = attack * Math.Sqrt(defense) * Math.Sqrt(stamina) * cpm * cpm / 10;
+              int CP = Math.Max(10, (int) Math.Floor(cp));
+              allCPs.Add((pokemon, name, attackIV, defenseIV, staminaIV, cpmIndex / 2m + 1, CP, lvl20cp));
+              if (cpmIndex == 38) // LVL20
+              {
+                lvl20cp = CP;
+              }
             }
           }
         }
-
-        Lookup = allCPs.ToLookup(data => data.CP);
       }
+
+      Lookup = allCPs.ToLookup(data => data.CP);
     }
 
     public ILookup<int, (int pokemon, string name, int attackIV, int defenseIV, int staminaIV, decimal lvl, int CP, int? lvl20CP)> Lookup { get; }
