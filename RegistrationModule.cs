@@ -8,7 +8,7 @@ namespace PoGoMeter
   {
     protected override void Load(ContainerBuilder builder)
     {
-      builder.RegisterType<CalculatorCP>().SingleInstance();
+      builder.RegisterType<Pokemons>().SingleInstance();
       
       builder.RegisterTelegramSkeleton();
     }

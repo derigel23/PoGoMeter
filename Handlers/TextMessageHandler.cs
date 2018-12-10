@@ -6,6 +6,8 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac.Features.Metadata;
+using Microsoft.EntityFrameworkCore;
+using PoGoMeter.Model;
 using Team23.TelegramSkeleton;
 using Telegram.Bot;
 using Telegram.Bot.Types;
@@ -16,14 +18,18 @@ namespace PoGoMeter.Handlers
   [MessageType(MessageType = MessageType.Text)]
   public class TextMessageHandler : TextMessageHandler<object, bool?, MessageEntityTypeAttribute>
   {
-    private readonly CalculatorCP myCalculator;
+    private readonly Pokemons myPokemons;
     private readonly ITelegramBotClient myBot;
+    private readonly PoGoMeterContext myDb;
 
-    public TextMessageHandler(IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers, CalculatorCP calculator, ITelegramBotClient bot)
-      : base(messageEntityHandlers)
+    private byte myMinIV = 10;
+    
+    public TextMessageHandler(IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
+      Pokemons pokemons, ITelegramBotClient bot, PoGoMeterContext db) : base(messageEntityHandlers)
     {
-      myCalculator = calculator;
+      myPokemons = pokemons;
       myBot = bot;
+      myDb = db;
     }
 
     private const int SIZE_LIMIT = 4096;
@@ -39,8 +45,6 @@ namespace PoGoMeter.Handlers
       if (result != null)
         return result;
 
-      var lookup = myCalculator.Lookup;
-
       if (Regex.Match(message.Text, "cp(?<cp>\\d+)") is var cpMatch && !cpMatch.Success)
       {
         await myBot.SendTextMessageAsync(message.Chat, @"Unknown command. Enter target CP with command `cpXXXX`.", ParseMode.Markdown, cancellationToken: cancellationToken);
@@ -50,7 +54,14 @@ namespace PoGoMeter.Handlers
       var outputs = new Queue<string>();
       if (int.TryParse(cpMatch.Groups["cp"].Value, out var targetCP))
       {
-        if (!lookup.Contains(targetCP))
+        var stats = await myDb.Stats
+          .Where(_ => _.CP == targetCP)
+          .Where(_ => _.AttackIV >= myMinIV)
+          .Where(_ => _.DefenseIV >= myMinIV)
+          .Where(_ => _.StaminaIV >= myMinIV)
+          .ToListAsync(cancellationToken);
+        
+        if (stats.Count == 0)
         {
           await myBot.SendTextMessageAsync(message.Chat, "No such pokemon", ParseMode.Markdown, cancellationToken: cancellationToken);
           return true;
@@ -65,19 +76,14 @@ namespace PoGoMeter.Handlers
           .AppendLine();
         var prefixLength = output.Length;
 
-        foreach (var foundPokemons in lookup[targetCP].ToLookup(data => data.name))
+        foreach (var foundPokemons in stats.ToLookup(data => data.Pokemon).OrderBy(_ => _.Key))
         {
           int before = output.Length;
-          output.AppendLine($"{foundPokemons.Key}");
+          output.AppendLine($"{myPokemons.GetPokemonName(foundPokemons.Key) ?? foundPokemons.Key.ToString()}");
           foreach (var foundPokemon in foundPokemons
-            .OrderByDescending(foundPokemon => foundPokemon.attackIV + foundPokemon.defenseIV + foundPokemon.staminaIV)
-            .ThenByDescending(_ => _.lvl20CP))
+            .OrderByDescending(foundPokemon => foundPokemon.AttackIV + foundPokemon.DefenseIV + foundPokemon.StaminaIV))
           {
-            output.Append($" {(foundPokemon.attackIV + foundPokemon.defenseIV + foundPokemon.staminaIV) / (0m + myCalculator.MaxIV * 3) * 100,3:00}% {ShowIV(foundPokemon.attackIV)}/{ShowIV(foundPokemon.defenseIV)}/{ShowIV(foundPokemon.staminaIV)} Lvl {foundPokemon.lvl,-5}");
-            //              if (foundPokemon.lvl20CP is int lvl20CP)
-            //              {
-            //                output.Append($" (Lvl20 {lvl20CP}CP)");
-            //              }
+            output.Append($" {(foundPokemon.AttackIV + foundPokemon.DefenseIV + foundPokemon.StaminaIV) / (0m + 15 * 3) * 100,3:00}% {ShowIV(foundPokemon.AttackIV)}/{ShowIV(foundPokemon.DefenseIV)}/{ShowIV(foundPokemon.StaminaIV)} Lvl {foundPokemon.Level / 2m + 1,-5}");
             output.AppendLine();
           }
           output.AppendLine();

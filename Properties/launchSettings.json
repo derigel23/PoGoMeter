@@ -6,8 +6,14 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "launchUrl": "https://f1e2db6f.ngrok.io/refresh",
+      "launchUrl": "https://18b19671.ngrok.io/refresh",
       "applicationUrl": "http://localhost:5000/"
+    },
+
+    "InitData": {
+      "commandName": "Project",
+      "commandLineArgs": "--InitData true"
     }
+
   }
 }

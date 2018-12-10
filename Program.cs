@@ -1,15 +1,35 @@
-﻿using Autofac.Extensions.DependencyInjection;
+﻿using System.Threading;
+using System.Threading.Tasks;
+using Autofac.Extensions.DependencyInjection;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using PoGoMeter.Migrations;
+using PoGoMeter.Model;
 
 namespace PoGoMeter
 {
   public static class Program
   {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
-      CreateWebHostBuilder(args).Build().Run();
+      var webHost = CreateWebHostBuilder(args).Build();
+      var cancellationToken = CancellationToken.None;
+      using (var serviceScope = webHost.Services.CreateScope())
+      {
+        var configuration = serviceScope.ServiceProvider.GetService<IConfiguration>();
+        if (configuration.GetValue("InitData", false))
+        {
+          var fillingMigration = new StatsFillingMigration(serviceScope.ServiceProvider.GetService<PoGoMeterContext>(),
+            configuration.GetConnectionString("PoGoMeterDatabase"));
+          
+          await fillingMigration.Run(cancellationToken);
+          return;
+        }
+      }
+      
+      await webHost.RunAsync(cancellationToken);
     }
 
     public static IWebHostBuilder CreateWebHostBuilder(string[] args) =>
