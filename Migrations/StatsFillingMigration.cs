@@ -35,18 +35,8 @@ namespace PoGoMeter.Migrations
     
     public async Task Run(CancellationToken cancellationToken = default)
     {
-      var type = typeof(Stats);
-      var entity = myModel.FindEntityType(type);
-      var entityName = entity.Relational();
-
-      using (var bulkCopy = new SqlBulkCopy(myConnectionString))
+      using (var bulkCopy = new SqlBulkCopy(myConnectionString, SqlBulkCopyOptions.TableLock | SqlBulkCopyOptions.FireTriggers | SqlBulkCopyOptions.UseInternalTransaction | SqlBulkCopyOptions.KeepIdentity) { EnableStreaming = true })
       {
-        bulkCopy.DestinationTableName = $"{entityName.Schema}.{entityName.TableName}";
-        foreach (var property in entity.GetProperties())
-        {
-          bulkCopy.ColumnMappings.Add(property.Name, property.Relational().ColumnName);
-        }
-
         var data = new List<Stats>();
 
         using (var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PoGoMeter.PoGoAssets.gamemaster.gamemaster.json"))
@@ -70,6 +60,18 @@ namespace PoGoMeter.Migrations
               short baseAttack = stats["baseAttack"];
               short baseDefense = stats["baseDefense"];
               short baseStamina = stats["baseStamina"];
+              
+              await BulkCopy(bulkCopy, new []
+              {
+                new BaseStats
+                {
+                  Pokemon = pokemon,
+                  Attack = baseAttack,
+                  Defense = baseDefense,
+                  Stamina = baseStamina
+                }
+              }, cancellationToken);
+
               for (var cpmIndex = Math.Max((byte)0, LevelMin); cpmIndex < Math.Min(CPM.Length, LevelMax); cpmIndex++)
               {
                 Console.WriteLine($"Pokemon {pokemon,-3} Level {cpmIndex,-3}");
@@ -87,9 +89,6 @@ namespace PoGoMeter.Migrations
                   data.Add(new Stats
                   {
                     Pokemon = pokemon,
-                    Attack = attack,
-                    Defense = defense,
-                    Stamina = stamina,
                     AttackIV = attackIV,
                     DefenseIV = defenseIV,
                     StaminaIV = staminaIV,
@@ -99,16 +98,39 @@ namespace PoGoMeter.Migrations
                 }
               }
               
-              using (var objectReader = ObjectReader.Create(data))
-              {
-                await bulkCopy.WriteToServerAsync(objectReader, cancellationToken);
-              }
+              await BulkCopy(bulkCopy, data, cancellationToken);
               data.Clear();
             }
-          }
         }
       }
+    }
 
+    private async Task BulkCopy<TEntity>(SqlBulkCopy bulkCopy, IEnumerable<TEntity> entities, CancellationToken cancellationToken)
+    {
+      var type = typeof(TEntity);
+      var entity = myModel.FindEntityType(type);
+      var entityName = entity.Relational();
+
+      bulkCopy.DestinationTableName = $"{entityName.Schema}.{entityName.TableName}";
+      bulkCopy.ColumnMappings.Clear();
+      foreach (var property in entity.GetProperties())
+      {
+        if (property.IsShadowProperty) continue;
+        bulkCopy.ColumnMappings
+          .Add(property.Name, property.Relational().ColumnName);
+      }
+
+      var members = new string[bulkCopy.ColumnMappings.Count];
+      for (var i = 0; i < bulkCopy.ColumnMappings.Count; i++)
+      {
+        members[i] = bulkCopy.ColumnMappings[i].SourceColumn;
+      }
+      using (var objectReader = ObjectReader.Create(entities, members))
+      {
+        await bulkCopy.WriteToServerAsync(objectReader, cancellationToken);
+      }
+    }
+    
     private static double[] CPM =
     {
       0.094,

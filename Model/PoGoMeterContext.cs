@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using System;
+using Microsoft.EntityFrameworkCore;
 
 namespace PoGoMeter.Model
 {
@@ -13,9 +14,16 @@ namespace PoGoMeter.Model
     {
       modelBuilder.HasDefaultSchema("PoGoMeter");
 
-      var builder = modelBuilder.Entity<Stats>();
+      modelBuilder.Entity<Stats>(builder =>
+      {
+        builder.HasKey(_ => new { _.Pokemon, _.CP, _.Level, _.AttackIV, _.DefenseIV, _.StaminaIV });
+      });
 
-      builder.HasKey(stats => new { stats.Pokemon, stats.CP,  stats.Level, stats.AttackIV, stats.DefenseIV, stats.StaminaIV });
+      modelBuilder.Entity<BaseStats>(builder =>
+      {
+        builder.HasKey(_ => _.Pokemon);
+        builder.HasMany(_ => _.Stats).WithOne().HasForeignKey(_ => _.Pokemon);
+      });
     }
   }
 }
