@@ -13,7 +13,7 @@ namespace PoGoMeter
     
     public Pokemons()
     {
-      using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PoGoMeter.PoGoAssets.static_assets.txt.merged #20.txt"))
+      using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PoGoMeter.PoGoAssets.static_assets.txt.merged #6.txt"))
       using (var reader = new StreamReader(stream, Encoding.UTF8))
       {
         while (reader.ReadLine()?.Trim() is string line) 

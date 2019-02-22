@@ -11,7 +11,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="PoGoAssets\gamemaster\gamemaster.json" />
-    <EmbeddedResource Include="PoGoAssets\static_assets\txt\merged #20.txt" />
+    <EmbeddedResource Include="PoGoAssets\static_assets\txt\merged #6.txt" />
   </ItemGroup>
 
   <ItemGroup>
