@@ -98,10 +98,17 @@ namespace PoGoMeter.Handlers
       StringBuilder Finish(StringBuilder builder) => builder.AppendLine("```");
 
       var output = new StringBuilder()
-        .AppendLine("```")
-        //.AppendLine($"Target CP {targetCP}")
+        .AppendLine("```");
+
+      if (stats.ToLookup(_ => _.CP) is var targetCPs && targetCPs.Count == 1)
+      {
+        output.AppendLine($"Target CP {targetCPs.Single().Key}");
+      }
+  
+      output
         .AppendLine("Stats Attack/Defense/HP")
         .AppendLine();
+
       var prefixLength = output.Length;
 
       foreach (var foundPokemons in stats.ToLookup(data => data.Pokemon).OrderBy(_ => _.Key))
