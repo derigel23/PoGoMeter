@@ -15,7 +15,7 @@ using Telegram.Bot.Types.Enums;
 namespace PoGoMeter.Handlers
 {
   [MessageType(MessageType = MessageType.Text)]
-  public class TextMessageHandler : TextMessageHandler<object, bool?, MessageEntityTypeAttribute>
+  public class TextMessageHandler : TextMessageHandler<object, bool?, MessageEntityTypeAttribute>, IMessageHandler
   {
     private readonly Pokemons myPokemons;
     private readonly ITelegramBotClient myBot;
@@ -33,13 +33,13 @@ namespace PoGoMeter.Handlers
 
     private const int SIZE_LIMIT = 4096;
 
-    public override async Task<bool?> Handle(Message message, object context, CancellationToken cancellationToken = new CancellationToken())
+    public override async Task<bool?> Handle(Message message, (UpdateType, object) __, CancellationToken cancellationToken = new CancellationToken())
     {
 
       if (string.IsNullOrEmpty(message.Text))
         return null;
 
-      var result = await base.Handle(message, context, cancellationToken);
+      var result = await base.Handle(message, __, cancellationToken);
 
       if (result != null)
         return result;

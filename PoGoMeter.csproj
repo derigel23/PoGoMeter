@@ -16,13 +16,13 @@
 
   <ItemGroup>
     <PackageReference Include="FastMember.NetCore" Version="1.1.0" />
-    <PackageReference Include="System.Json" Version="4.4.0" />
-    <PackageReference Include="Autofac" Version="4.8.1" />
-    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.3.1" />
-    <PackageReference Include="JetBrains.Annotations" Version="2018.2.1" />
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.5.1" />
+    <PackageReference Include="System.Json" Version="4.5.0" />
+    <PackageReference Include="Autofac" Version="4.9.1" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.4.0" />
+    <PackageReference Include="JetBrains.Annotations" Version="2018.3.0" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.6.1" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Team23.TelegramSkeleton" Version="1.0.11" />
+    <PackageReference Include="Team23.TelegramSkeleton" Version="1.0.14" />
     <PackageReference Include="Telegram.Bot" Version="14.10.0" />
   </ItemGroup>
 

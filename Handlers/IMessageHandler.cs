@@ -9,11 +9,11 @@ namespace PoGoMeter.Handlers
   public interface IMessageHandler : IMessageHandler<object, bool?> { }
   
   [MeansImplicitUse]
-  public class MessageTypeAttribute : Attribute, IHandlerAttribute<Message, object>
+  public class MessageTypeAttribute : Attribute, IHandlerAttribute<Message, (UpdateType, object)>
   {
     public MessageType MessageType { get; set; }
 
-    public bool ShouldProcess(Message message, object context)
+    public bool ShouldProcess(Message message, (UpdateType, object) context)
     {
       return message.Type == MessageType;
     }
