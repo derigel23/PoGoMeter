@@ -10,6 +10,7 @@ namespace PoGoMeter.Handlers
   public interface IMessageHandler : IMessageHandler<object, bool?> { }
   
   [MeansImplicitUse]
+  [BaseTypeRequired(typeof(IMessageHandler))]
   public class MessageTypeAttribute : Attribute, IHandlerAttribute<Message, (UpdateType, object)>
   {
     // by default only for new messages

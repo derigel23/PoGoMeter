@@ -9,6 +9,7 @@ namespace PoGoMeter.Handlers
   public interface IMessageEntityHandler : IMessageEntityHandler<object, bool?> { }
   
   [MeansImplicitUse]
+  [BaseTypeRequired(typeof(IMessageEntityHandler))]
   public class MessageEntityTypeAttribute : Attribute, IHandlerAttribute<MessageEntity, object>
   {
     public MessageEntityType EntityType { get; set; }

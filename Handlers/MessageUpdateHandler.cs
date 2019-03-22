@@ -8,9 +8,9 @@ using Telegram.Bot.Types.Enums;
 namespace PoGoMeter.Handlers
 {
   [UpdateHandler(UpdateType = UpdateType.Message)]
-  public class MessageUpdateHandler : MessageUpdateHandler<object, bool?, MessageTypeAttribute>
+  public class MessageUpdateHandler : MessageUpdateHandler<IMessageHandler, object, bool?, MessageTypeAttribute>
   {
-    public MessageUpdateHandler(IEnumerable<Meta<Func<Message, IMessageHandler<object, bool?>>, MessageTypeAttribute>> messageHandlers)
+    public MessageUpdateHandler(IEnumerable<Meta<Func<Message, IMessageHandler>, MessageTypeAttribute>> messageHandlers)
       : base(messageHandlers) { }
   }
 }
