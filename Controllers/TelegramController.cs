@@ -12,6 +12,6 @@ namespace PoGoMeter.Controllers
   public class TelegramController : Team23.TelegramSkeleton.TelegramController
   {
     public TelegramController(ITelegramBotClient botClient, TelemetryClient telemetryClient, IEnumerable<Meta<Func<Update, IUpdateHandler<bool?>>, UpdateHandlerAttribute>> updateHandlers)
-      : base(telemetryClient, updateHandlers, botClient.GetType().Namespace) { }
+      : base(telemetryClient, updateHandlers, botClient.GetType().Name) { }
   }
 }
