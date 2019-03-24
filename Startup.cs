@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using PoGoMeter.Configuration;
 using PoGoMeter.Handlers;
 using PoGoMeter.Model;
+using Team23.TelegramSkeleton;
 using Telegram.Bot;
 
 namespace PoGoMeter
@@ -50,7 +51,7 @@ namespace PoGoMeter
       services
         .AddMvc()
         .SetCompatibilityVersion(CompatibilityVersion.Latest)
-        .AddControllersAsServices();
+        .AddApplicationPart(typeof(TelegramController).Assembly);
 
       services.AddDbContext<PoGoMeterContext>(options => options
         .UseSqlServer(Configuration.GetConnectionString("PoGoMeterDatabase"))
