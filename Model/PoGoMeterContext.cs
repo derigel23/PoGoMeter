@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace PoGoMeter.Model
 {
@@ -9,6 +8,7 @@ namespace PoGoMeter.Model
       : base(options) { }
 
     public DbSet<Stats> Stats { get; set; }
+    public DbSet<Ignore> Ignore { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -23,6 +23,12 @@ namespace PoGoMeter.Model
       {
         builder.HasKey(_ => _.Pokemon);
         builder.HasMany(_ => _.Stats).WithOne().HasForeignKey(_ => _.Pokemon);
+      });
+      
+      modelBuilder.Entity<Ignore>(builder =>
+      {
+        builder.HasKey(_ => new { _.UserId, _.Pokemon });
+        builder.HasIndex(_ => _.UserId);
       });
     }
   }

@@ -1,4 +1,4 @@
-using System.Collections.Concurrent;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -9,7 +9,11 @@ namespace PoGoMeter
 {
   public class Pokemons
   {
-    private readonly ConcurrentDictionary<string, string> myPokemons = new ConcurrentDictionary<string, string>();
+    private readonly Dictionary<string, string> myTexts = new Dictionary<string, string>();
+    private readonly Dictionary<short, string> myPokemonNames = new Dictionary<short, string>();
+    private readonly Dictionary<string, short> myPokemonNumbers = new Dictionary<string, short>(StringComparer.OrdinalIgnoreCase);
+
+    private static string pokemonNamePrefix = "pokemon_name_";
     
     public Pokemons()
     {
@@ -23,13 +27,20 @@ namespace PoGoMeter
             var match = Regex.Match(reader.ReadLine() + reader.ReadLine(), "string Key = \"(?<key>.*)\"\\s+string Translation = \"(?<value>.*)\"", RegexOptions.Multiline);
             if (match.Success)
             {
-              myPokemons[match.Groups["key"].Value] = match.Groups["value"].Value;
+              var key = match.Groups["key"].Value;
+              var value = myTexts[key] = match.Groups["value"].Value;
+              if (key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
+              {
+                myPokemonNames.Add(number, value);
+                myPokemonNumbers.Add(value, number);
+              }
             }
           }
         }
       }
     }
 
-    public string GetPokemonName(int pokemon) => myPokemons.GetValueOrDefault($"pokemon_name_{pokemon:0000}");
+    public string GetPokemonName(short number) => myPokemonNames.TryGetValue(number, out var name) ? name: null;
+    public short? GetPokemonNumber(string name) => myPokemonNumbers.TryGetValue(name, out var number) ? number : default(short?);
   }
 }

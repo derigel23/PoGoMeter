@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac.Features.Metadata;
+using Microsoft.EntityFrameworkCore;
 using PoGoMeter.Model;
 using Team23.TelegramSkeleton;
 using Telegram.Bot;
@@ -54,8 +55,7 @@ namespace PoGoMeter.Handlers
       try
       {
 
-
-      var queryOr = Enumerable.Empty<Stats>().AsQueryable(); ;
+      var queryOr = Enumerable.Empty<Stats>().AsQueryable();
       foreach (var queryOrPart in message.Text.Split(new [] { "OR", ",", ";", ":" },StringSplitOptions.RemoveEmptyEntries))
       {
         var queryAnd = query;
@@ -82,11 +82,16 @@ namespace PoGoMeter.Handlers
         queryOr = queryOr.Concat(queryAnd);
       }
 
+      var ignore = await myDb.Ignore.Where(_ => _.UserId == message.From.Id).Select(_ => _.Pokemon).ToListAsync(cancellationToken);
+      if (ignore.Count > 0)
+      {
+        queryOr = queryOr.Where(_ => !ignore.Contains(_.Pokemon));
+      }
+      
       await myBot.SendChatActionAsync(message.Chat, ChatAction.Typing, cancellationToken);
 
       var outputs = new List<string>();
 
-      
       var stats = queryOr.ToList();
 
       if (stats.Count == 0)
