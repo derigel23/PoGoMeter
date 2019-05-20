@@ -72,6 +72,27 @@ namespace PoGoMeter.Handlers
 
             queryAnd = queryAnd.Where(_ => _.CP == targetCP);
           }
+          else if (Regex.Match(queryAndPart, "^atk(?<atk>\\d+)$", RegexOptions.IgnoreCase) is var attackMatch && attackMatch.Success)
+          {
+            if (!byte.TryParse(attackMatch.Groups["atk"].Value, out var targetAttack))
+              return false; // can't be
+
+            queryAnd = queryAnd.Where(_ => _.AttackIV == targetAttack);
+          }
+          else if (Regex.Match(queryAndPart, "^def(?<def>\\d+)$", RegexOptions.IgnoreCase) is var defenseMatch && defenseMatch.Success)
+          {
+            if (!byte.TryParse(defenseMatch.Groups["def"].Value, out var targetDefense))
+              return false; // can't be
+
+            queryAnd = queryAnd.Where(_ => _.DefenseIV == targetDefense);
+          }
+          else if (Regex.Match(queryAndPart, "^sta(?<sta>\\d+)$", RegexOptions.IgnoreCase) is var staminaMatch && staminaMatch.Success)
+          {
+            if (!byte.TryParse(staminaMatch.Groups["sta"].Value, out var targetStamina))
+              return false; // can't be
+
+            queryAnd = queryAnd.Where(_ => _.StaminaIV == targetStamina);
+          }
           else
           {
             await myBot.SendTextMessageAsync(message.Chat, @"Unknown command. Enter target CP with command `cpXXXX`.", ParseMode.Markdown, cancellationToken: cancellationToken);
@@ -105,7 +126,8 @@ namespace PoGoMeter.Handlers
       var output = new StringBuilder()
         .AppendLine("```");
 
-      if (stats.ToLookup(_ => _.CP) is var targetCPs && targetCPs.Count == 1)
+      var singleTargetCP = false;
+      if (stats.ToLookup(_ => _.CP) is var targetCPs && (singleTargetCP = targetCPs.Count == 1))
       {
         output.AppendLine($"Target CP {targetCPs.Single().Key}");
       }
@@ -118,30 +140,33 @@ namespace PoGoMeter.Handlers
 
       foreach (var foundPokemons in stats.ToLookup(data => data.Pokemon).OrderBy(_ => _.Key))
       {
-        int before = output.Length;
-        output.AppendLine($"{myPokemons.GetPokemonName(foundPokemons.Key) ?? foundPokemons.Key.ToString()}");
+        void Header() => output.AppendLine($"{myPokemons.GetPokemonName(foundPokemons.Key) ?? foundPokemons.Key.ToString()}");
+        Header();
         foreach (var foundPokemon in foundPokemons
           .OrderByDescending(foundPokemon => foundPokemon.AttackIV + foundPokemon.DefenseIV + foundPokemon.StaminaIV))
         {
-          output.Append(
-            $" {(foundPokemon.AttackIV + foundPokemon.DefenseIV + foundPokemon.StaminaIV) / (0m + 15 * 3) * 100,3:00}% {ShowIV(foundPokemon.AttackIV)}/{ShowIV(foundPokemon.DefenseIV)}/{ShowIV(foundPokemon.StaminaIV)} Lvl {foundPokemon.Level / 2m + 1,-5}");
-          output.AppendLine();
-        }
+          var before = output.Length;
 
+          if (!singleTargetCP)
+            output.Append($"{foundPokemon.CP,6}CP");
+          output.AppendLine($" {(foundPokemon.AttackIV + foundPokemon.DefenseIV + foundPokemon.StaminaIV) / (0m + 15 * 3) * 100,3:00}% {ShowIV(foundPokemon.AttackIV)}/{ShowIV(foundPokemon.DefenseIV)}/{ShowIV(foundPokemon.StaminaIV)} Lvl {foundPokemon.Level / 2m + 1,-5}");
+          
+          var after = output.Length;
+          Finish(output);
+
+          if (output.Length > SIZE_LIMIT)
+          {
+            outputs.Add(output.ToString(0, before) + output.ToString(after, output.Length - after));
+            output.Length = after;
+            output.Remove(prefixLength, before - prefixLength);
+            Header();
+          }
+          else
+          {
+            output.Length = after;
+          }
+        }
         output.AppendLine();
-        var after = output.Length;
-        Finish(output);
-
-        if (output.Length > SIZE_LIMIT)
-        {
-          outputs.Add(output.ToString(0, before) + output.ToString(after, output.Length - after));
-          output.Length = after;
-          output.Remove(prefixLength, before - prefixLength);
-        }
-        else
-        {
-          output.Length = after;
-        }
       }
 
       outputs.Add(Finish(output).ToString());
