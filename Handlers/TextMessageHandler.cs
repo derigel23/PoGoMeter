@@ -25,7 +25,7 @@ namespace PoGoMeter.Handlers
     private byte myMinIV = 10;
     
     public TextMessageHandler(IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
-      Pokemons pokemons, ITelegramBotClient bot, PoGoMeterContext db) : base(messageEntityHandlers)
+      Pokemons pokemons, ITelegramBotClient bot, PoGoMeterContext db) : base(bot, messageEntityHandlers)
     {
       myPokemons = pokemons;
       myBot = bot;

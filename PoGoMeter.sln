@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PoGoMeter", "PoGoMeter.csproj", "{8F807A61-DC4D-45E1-9D1F-12CB18D33D06}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TelegramSkeleton", "TelegramSkeleton\TelegramSkeleton.csproj", "{D1F4E508-BC0A-4D57-8FA3-019336EDD895}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{8F807A61-DC4D-45E1-9D1F-12CB18D33D06}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8F807A61-DC4D-45E1-9D1F-12CB18D33D06}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8F807A61-DC4D-45E1-9D1F-12CB18D33D06}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1F4E508-BC0A-4D57-8FA3-019336EDD895}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1F4E508-BC0A-4D57-8FA3-019336EDD895}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1F4E508-BC0A-4D57-8FA3-019336EDD895}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1F4E508-BC0A-4D57-8FA3-019336EDD895}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
