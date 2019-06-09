@@ -22,7 +22,8 @@ namespace PoGoMeter.Handlers
     private readonly ITelegramBotClient myBot;
     private readonly PoGoMeterContext myDb;
 
-    private byte myMinIV = 10;
+    private readonly byte myMinIV = 10;
+    private readonly short[] myExcludeMinCheck = { 289 /* Slaking */ };
     
     public TextMessageHandler(IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
       Pokemons pokemons, ITelegramBotClient bot, PoGoMeterContext db) : base(bot, messageEntityHandlers)
@@ -48,9 +49,9 @@ namespace PoGoMeter.Handlers
       // https://pokemongo.gamepress.gg/guide-search-bar
 
       var query = myDb.Stats
-        .Where(_ => _.AttackIV >= myMinIV)
-        .Where(_ => _.DefenseIV >= myMinIV)
-        .Where(_ => _.StaminaIV >= myMinIV);
+        .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) ||  _.AttackIV >= myMinIV)
+        .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.DefenseIV >= myMinIV)
+        .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.StaminaIV >= myMinIV);
 
       try
       {
@@ -180,7 +181,7 @@ namespace PoGoMeter.Handlers
           //case int n when n > 0 && n <= maxIV:
           //  return ((char)('\u2460' + iv - 1)).ToString();
           default:
-            return iv.ToString();
+            return $"{iv,2}";
         }
       }
 
