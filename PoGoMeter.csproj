@@ -20,9 +20,9 @@
     <PackageReference Include="Autofac" Version="4.9.2" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="4.4.0" />
     <PackageReference Include="JetBrains.Annotations" Version="2019.1.1" />
-    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.6.1" />
+    <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.7.0" />
     <PackageReference Include="Microsoft.AspNetCore.App" />
-    <PackageReference Include="Telegram.Bot" Version="14.11.0" />
+    <PackageReference Include="Telegram.Bot" Version="14.12.0" />
   </ItemGroup>
 
   <ItemGroup>
