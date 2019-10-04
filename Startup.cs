@@ -4,7 +4,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -28,6 +27,8 @@ namespace PoGoMeter
     // This method gets called by the runtime. Use this method to add services to the container.
     public void ConfigureServices(IServiceCollection services)
     {
+      services.AddApplicationInsightsTelemetry();
+      
       // Adds services required for using options.
       services.AddOptions();
 
@@ -49,13 +50,13 @@ namespace PoGoMeter
       services.AddHttpClient<ITelegramBotClient, PoGoMeterTelegramBotClient>();
 
       services
-        .AddMvc()
+        .AddMvc(options => options.EnableEndpointRouting = false)
+        .AddNewtonsoftJson()
         .SetCompatibilityVersion(CompatibilityVersion.Latest)
         .AddApplicationPart(typeof(TelegramController).Assembly);
 
       services.AddDbContext<PoGoMeterContext>(options => options
         .UseSqlServer(Configuration.GetConnectionString("PoGoMeterDatabase"))
-        .ConfigureWarnings(warnings => warnings.Throw(RelationalEventId.QueryClientEvaluationWarning))
         .EnableSensitiveDataLogging());
     }
 
@@ -65,7 +66,7 @@ namespace PoGoMeter
     }
 
     // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-    public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
+    public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
       app
         .UseRequestLocalization()

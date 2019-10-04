@@ -37,7 +37,6 @@ namespace PoGoMeter
         .CreateDefaultBuilder(args)
         .ConfigureServices(services => services.AddAutofac())
         .UseStartup<Startup>()
-        .UseApplicationInsights()
         .ConfigureAppConfiguration((context, builder) =>
         {
           builder.AddJsonFile("appsettings.user.json", true);

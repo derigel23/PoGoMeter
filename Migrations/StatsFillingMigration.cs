@@ -39,7 +39,7 @@ namespace PoGoMeter.Migrations
       {
         var data = new List<Stats>();
 
-        using (var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PoGoMeter.PoGoAssets.gamemaster.gamemaster.json"))
+        using (var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GAME_MASTER.json"))
         using (var sr = new StreamReader(resourceStream))
         using (var reader = new JsonTextReader(sr))
         {
@@ -109,15 +109,14 @@ namespace PoGoMeter.Migrations
     {
       var type = typeof(TEntity);
       var entity = myModel.FindEntityType(type);
-      var entityName = entity.Relational();
 
-      bulkCopy.DestinationTableName = $"{entityName.Schema}.{entityName.TableName}";
+      bulkCopy.DestinationTableName = $"{entity.GetSchema()}.{entity.GetTableName()}";
       bulkCopy.ColumnMappings.Clear();
       foreach (var property in entity.GetProperties())
       {
-        if (property.IsShadowProperty) continue;
+        if (property.IsShadowProperty()) continue;
         bulkCopy.ColumnMappings
-          .Add(property.Name, property.Relational().ColumnName);
+          .Add(property.Name, property.GetColumnName());
       }
 
       var members = new string[bulkCopy.ColumnMappings.Count];

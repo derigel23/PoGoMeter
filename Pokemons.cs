@@ -9,7 +9,6 @@ namespace PoGoMeter
 {
   public class Pokemons
   {
-    private readonly Dictionary<string, string> myTexts = new Dictionary<string, string>();
     private readonly Dictionary<short, string> myPokemonNames = new Dictionary<short, string>();
     private readonly Dictionary<string, short> myPokemonNumbers = new Dictionary<string, short>(StringComparer.OrdinalIgnoreCase);
 
@@ -17,7 +16,7 @@ namespace PoGoMeter
     
     public Pokemons()
     {
-      using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("PoGoMeter.PoGoAssets.static_assets.txt.merged #6.txt"))
+      using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GAME_MASTER.txt"))
       using (var reader = new StreamReader(stream, Encoding.UTF8))
       {
         while (reader.ReadLine()?.Trim() is string line) 
@@ -28,7 +27,7 @@ namespace PoGoMeter
             if (match.Success)
             {
               var key = match.Groups["key"].Value;
-              var value = myTexts[key] = match.Groups["value"].Value;
+              var value = match.Groups["value"].Value;
               if (key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
               {
                 myPokemonNames.Add(number, value);

@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using Autofac.Features.Metadata;
+using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
 using PoGoMeter.Model;
 using Team23.TelegramSkeleton;
@@ -18,6 +19,7 @@ namespace PoGoMeter.Handlers
   [MessageType(MessageType = MessageType.Text)]
   public class TextMessageHandler : TextMessageHandler<object, bool?, MessageEntityTypeAttribute>, IMessageHandler
   {
+    private readonly TelemetryClient myTelemetryClient;
     private readonly Pokemons myPokemons;
     private readonly ITelegramBotClient myBot;
     private readonly PoGoMeterContext myDb;
@@ -25,9 +27,10 @@ namespace PoGoMeter.Handlers
     private readonly byte myMinIV = 10;
     private readonly short[] myExcludeMinCheck = { 289 /* Slaking */ };
     
-    public TextMessageHandler(IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
+    public TextMessageHandler(TelemetryClient telemetryClient, IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
       Pokemons pokemons, ITelegramBotClient bot, PoGoMeterContext db) : base(bot, messageEntityHandlers)
     {
+      myTelemetryClient = telemetryClient;
       myPokemons = pokemons;
       myBot = bot;
       myDb = db;
@@ -190,6 +193,7 @@ namespace PoGoMeter.Handlers
       }
       catch (Exception ex)
       {
+        myTelemetryClient.TrackException(ex);
       }
 
       return true;

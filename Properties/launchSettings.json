@@ -6,7 +6,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
-      "launchUrl": "https://pogometer.localhost.run/refresh",
+      "launchUrl": "https://pogometer.serveo.net/refresh",
       "applicationUrl": "http://localhost:5000/"
     },
 
