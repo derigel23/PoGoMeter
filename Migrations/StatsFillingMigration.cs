@@ -2,13 +2,14 @@
 using System.Collections.Generic;
 using System.Data.SqlClient;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using FastMember;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Internal;
 using Newtonsoft.Json;
 using PoGoMeter.Model;
 
@@ -16,7 +17,7 @@ namespace PoGoMeter.Migrations
 {
   public class StatsFillingMigration
   {
-    private readonly IModel myModel;
+    private readonly PoGoMeterContext myContext;
     private readonly string myConnectionString;
     
     private byte LevelMin { get; }
@@ -27,14 +28,17 @@ namespace PoGoMeter.Migrations
 
     public StatsFillingMigration(PoGoMeterContext context, string connectionString, byte levelMin = 0, byte? levelMax = null)
     {
-      myModel = context.Model;
+      myContext = context;
       myConnectionString = connectionString;
       LevelMin = levelMin;
       LevelMax = levelMax.GetValueOrDefault((byte) CPM.Length);
     }
     
-    public async Task Run(CancellationToken cancellationToken = default)
+    public async Task Run(bool clearData = false, CancellationToken cancellationToken = default)
     {
+      await ClearEntities<Stats>(cancellationToken);
+      await ClearEntities<BaseStats>(cancellationToken);
+      
       using (var bulkCopy = new SqlBulkCopy(myConnectionString, SqlBulkCopyOptions.TableLock | SqlBulkCopyOptions.FireTriggers | SqlBulkCopyOptions.UseInternalTransaction | SqlBulkCopyOptions.KeepIdentity) { EnableStreaming = true })
       {
         var data = new List<Stats>();
@@ -105,10 +109,25 @@ namespace PoGoMeter.Migrations
       }
     }
 
+    private async Task ClearEntities<TEntity>(CancellationToken cancellationToken)
+    {
+      var entity = myContext.Model.FindEntityType(typeof(TEntity));
+
+      var hasReferencingForeignKeys = entity.GetReferencingForeignKeys().Any();
+      if (!hasReferencingForeignKeys)
+      {
+        await myContext.Database.ExecuteSqlRawAsync($"TRUNCATE TABLE {entity.GetSchema()}.{entity.GetTableName()}", cancellationToken);
+      }
+      else
+      {
+        await myContext.Database.ExecuteSqlRawAsync($"DELETE FROM {entity.GetSchema()}.{entity.GetTableName()}", cancellationToken);
+      }
+    }
+    
     private async Task BulkCopy<TEntity>(SqlBulkCopy bulkCopy, IEnumerable<TEntity> entities, CancellationToken cancellationToken)
     {
       var type = typeof(TEntity);
-      var entity = myModel.FindEntityType(type);
+      var entity = myContext.Model.FindEntityType(type);
 
       bulkCopy.DestinationTableName = $"{entity.GetSchema()}.{entity.GetTableName()}";
       bulkCopy.ColumnMappings.Clear();

@@ -10,9 +10,9 @@
       "applicationUrl": "http://localhost:5000/"
     },
 
-    "InitData": {
+    "ClearAndInitData": {
       "commandName": "Project",
-      "commandLineArgs": "--InitData true"
+      "commandLineArgs": "--ClearData true --InitData true"
     }
 
   }

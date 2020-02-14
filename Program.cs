@@ -24,7 +24,7 @@ namespace PoGoMeter
           var fillingMigration = new StatsFillingMigration(serviceScope.ServiceProvider.GetService<PoGoMeterContext>(),
             configuration.GetConnectionString("PoGoMeterDatabase"));
           
-          await fillingMigration.Run(cancellationToken);
+          await fillingMigration.Run(configuration.GetValue("ClearData", false), cancellationToken);
           return;
         }
       }
