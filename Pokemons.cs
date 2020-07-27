@@ -4,6 +4,7 @@ using System.IO;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using Newtonsoft.Json;
 
 namespace PoGoMeter
 {
@@ -16,24 +17,19 @@ namespace PoGoMeter
     
     public Pokemons()
     {
-      using (var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GAME_MASTER.txt"))
-      using (var reader = new StreamReader(stream, Encoding.UTF8))
+      using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GAME_TEXTS.json");
+      using var sr = new StreamReader(stream);
+      using var reader = new JsonTextReader(sr);
+      while (reader.Read())
       {
-        while (reader.ReadLine()?.Trim() is string line) 
+        if (reader.TokenType == JsonToken.String)
         {
-          if (line == "Entry data")
+          if (reader.Value is string key && key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
           {
-            var match = Regex.Match(reader.ReadLine() + reader.ReadLine(), "string Key = \"(?<key>.*)\"\\s+string Translation = \"(?<value>.*)\"", RegexOptions.Multiline);
-            if (match.Success)
-            {
-              var key = match.Groups["key"].Value;
-              var value = match.Groups["value"].Value;
-              if (key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
-              {
-                myPokemonNames.Add(number, value);
-                myPokemonNumbers.Add(value, number);
-              }
-            }
+            var value = reader.ReadAsString();
+
+            myPokemonNames.Add(number, value);
+            myPokemonNumbers.Add(value, number);
           }
         }
       }

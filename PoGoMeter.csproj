@@ -16,8 +16,8 @@
     <EmbeddedResource Include="PoGoAssets\gamemaster\gamemaster.json">
       <LogicalName>GAME_MASTER_OLD.json</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="PoGoAssets\static_assets\txt\merged #6.txt">
-      <LogicalName>GAME_MASTER.txt</LogicalName>
+    <EmbeddedResource Include="PoGoAssets\static_assets\txt\i18n_english.json">
+      <LogicalName>GAME_TEXTS.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
 
