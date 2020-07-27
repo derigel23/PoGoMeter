@@ -26,6 +26,8 @@ namespace PoGoMeter.Handlers
 
     private readonly byte myMinIV = 10;
     private readonly short[] myExcludeMinCheck = { 289 /* Slaking */ };
+    private readonly byte myMinBestBuddyIV = 14;
+    private readonly byte myBestBuddyLevel = 80;
     
     public TextMessageHandler(TelemetryClient telemetryClient, IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
       Pokemons pokemons, ITelegramBotClient bot, PoGoMeterContext db) : base(bot, messageEntityHandlers)
@@ -55,6 +57,12 @@ namespace PoGoMeter.Handlers
         .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) ||  _.AttackIV >= myMinIV)
         .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.DefenseIV >= myMinIV)
         .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.StaminaIV >= myMinIV);
+      
+      // special criteria for best buddy
+      query = query
+        .Where(_ => _.Level < myBestBuddyLevel ||  _.AttackIV >= myMinBestBuddyIV)
+        .Where(_ => _.Level < myBestBuddyLevel || _.DefenseIV >= myMinBestBuddyIV)
+        .Where(_ => _.Level < myBestBuddyLevel || _.StaminaIV >= myMinBestBuddyIV);
 
       try
       {

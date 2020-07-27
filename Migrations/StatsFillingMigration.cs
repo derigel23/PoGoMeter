@@ -77,12 +77,13 @@ namespace PoGoMeter.Migrations
 
               for (var cpmIndex = Math.Max((byte)0, LevelMin); cpmIndex < Math.Min(CPM.Length, LevelMax); cpmIndex++)
               {
-                Console.WriteLine($"Pokemon {pokemon,-3} Level {cpmIndex,-3}");
+                var cpm = CPM[cpmIndex];
+                if (cpm < double.Epsilon) continue; // non-existing value
+                Console.WriteLine($"Pokemon {pokemon,-3} Level {cpmIndex/2m+1,-5}");
                 for (var attackIV = MinIV; attackIV <= MaxIV; attackIV++)
                 for (var defenseIV = MinIV; defenseIV <= MaxIV; defenseIV++)
                 for (var staminaIV = MinIV; staminaIV <= MaxIV; staminaIV++)
                 {
-                  var cpm = CPM[cpmIndex];
                   var attack = (short) (baseAttack + attackIV);
                   var defense = (short) (baseDefense + defenseIV);
                   var stamina = (short) (baseStamina + staminaIV);
@@ -142,12 +143,12 @@ namespace PoGoMeter.Migrations
       {
         members[i] = bulkCopy.ColumnMappings[i].SourceColumn;
       }
-      using (var objectReader = ObjectReader.Create(entities, members))
-      {
-        await bulkCopy.WriteToServerAsync(objectReader, cancellationToken);
-      }
+
+      await using var objectReader = ObjectReader.Create(entities, members);
+      await bulkCopy.WriteToServerAsync(objectReader, cancellationToken);
     }
     
+    // TODO: Read from GAME_MASTER.json 
     private static double[] CPM =
     {
       0.094,
@@ -229,6 +230,8 @@ namespace PoGoMeter.Migrations
       0.78463697,
       0.787473578,
       0.79030001,
+      0.0, // non-existing value
+      0.79530001
     };
   }
 }
