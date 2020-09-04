@@ -20,20 +20,18 @@ namespace PoGoMeter.Handlers
   public class TextMessageHandler : TextMessageHandler<object, bool?, MessageEntityTypeAttribute>, IMessageHandler
   {
     private readonly TelemetryClient myTelemetryClient;
-    private readonly Pokemons myPokemons;
     private readonly ITelegramBotClient myBot;
     private readonly PoGoMeterContext myDb;
 
     private readonly byte myMinIV = 10;
     private readonly short[] myExcludeMinCheck = { 289 /* Slaking */ };
     private readonly byte myMinBestBuddyIV = 14;
-    private readonly byte myBestBuddyLevel = 80;
+    private readonly byte myBestBuddyLevel = 40 * 2 - 1;
     
     public TextMessageHandler(TelemetryClient telemetryClient, IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
-      Pokemons pokemons, ITelegramBotClient bot, PoGoMeterContext db) : base(bot, messageEntityHandlers)
+      ITelegramBotClient bot, PoGoMeterContext db) : base(bot, messageEntityHandlers)
     {
       myTelemetryClient = telemetryClient;
-      myPokemons = pokemons;
       myBot = bot;
       myDb = db;
     }
@@ -150,9 +148,12 @@ namespace PoGoMeter.Handlers
 
       var prefixLength = output.Length;
 
-      foreach (var foundPokemons in stats.ToLookup(data => data.Pokemon).OrderBy(_ => _.Key))
+      var foundPokemonsSet = stats.ToLookup(data => data.Pokemon);
+      var foundPokemonNumbers = foundPokemonsSet.Select(_ => _.Key).ToList();
+      var pokemonNames = await myDb.Set<PokemonName>().Where(name => foundPokemonNumbers.Contains(name.Pokemon)).ToDictionaryAsync(name => name.Pokemon, name => name.Name, cancellationToken);
+      foreach (var foundPokemons in foundPokemonsSet.OrderBy(_ => _.Key))
       {
-        void Header() => output.AppendLine($"{myPokemons.GetPokemonName(foundPokemons.Key) ?? foundPokemons.Key.ToString()}");
+        void Header() => output.AppendLine($"{pokemonNames.GetValueOrDefault(foundPokemons.Key, foundPokemons.Key.ToString())}");
         Header();
         foreach (var foundPokemon in foundPokemons
           .OrderByDescending(foundPokemon => foundPokemon.AttackIV + foundPokemon.DefenseIV + foundPokemon.StaminaIV))

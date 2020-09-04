@@ -10,6 +10,7 @@ using FastMember;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using PoGoMeter.Model;
 
 namespace PoGoMeter.Migrations
@@ -25,22 +26,27 @@ namespace PoGoMeter.Migrations
     private const byte MinIV = 0;
     private const byte MaxIV = 15;
 
-    public StatsFillingMigration(PoGoMeterContext context, string connectionString, byte levelMin = 0, byte? levelMax = null)
+    public StatsFillingMigration(PoGoMeterContext context, string connectionString, byte levelMin = 0, byte levelMax = 100)
     {
       myContext = context;
       myConnectionString = connectionString;
       LevelMin = levelMin;
-      LevelMax = levelMax.GetValueOrDefault((byte) CPM.Length);
+      LevelMax = checked ((byte) (levelMax * 2 - 1));
     }
+    
+    private const short MEGA_OFFSET = 1000;
     
     public async Task Run(bool clearData = false, CancellationToken cancellationToken = default)
     {
       await ClearEntities<Stats>(cancellationToken);
       await ClearEntities<BaseStats>(cancellationToken);
-      
+      await ClearEntities<PokemonName>(cancellationToken);
+
+      var names = new Pokemons();
       using (var bulkCopy = new SqlBulkCopy(myConnectionString, SqlBulkCopyOptions.TableLock | SqlBulkCopyOptions.FireTriggers | SqlBulkCopyOptions.UseInternalTransaction | SqlBulkCopyOptions.KeepIdentity) { EnableStreaming = true })
       {
-        var data = new List<Stats>();
+        double[] CPMs = null;
+        var records = new List<Stats>();
 
         using (var resourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GAME_MASTER.json"))
         using (var sr = new StreamReader(resourceStream))
@@ -52,58 +58,126 @@ namespace PoGoMeter.Migrations
             {
               if (reader.Path == "") continue;
               dynamic template = jsonSerializer.Deserialize(reader);
-              if (!template.ContainsKey("pokemonSettings")) continue;
               string templateId = template["templateId"];
-              if (!(Regex.Match(templateId, @"V(?<id>\d+)_.+") is var match && match.Success)) continue;
-              var pokemon = short.Parse(match.Groups["id"].Value);
-              //var name = texts[$"pokemon_name_{pokemon:0000}"];
-              var settings = template["pokemonSettings"];
-              if (settings.ContainsKey("form")) continue; // no alola currently
-              var stats = settings["stats"];
-              short baseAttack = stats["baseAttack"];
-              short baseDefense = stats["baseDefense"];
-              short baseStamina = stats["baseStamina"];
-              
-              await BulkCopy(bulkCopy, new []
+              if (templateId == "PLAYER_LEVEL_SETTINGS")
               {
-                new BaseStats
+                if (template["data"]["dfacfpghfdo"]["cgifidlgdmc"] is JArray levelCPMs)
+                {
+                  CPMs = new Double[levelCPMs.Count * 2 - 1];
+                  for (var i = 0; i < levelCPMs.Count; i++)
+                  {
+                    var cpm = CPMs[i * 2] = (double) levelCPMs[i];
+                    if (i < levelCPMs.Count - 1)
+                    {
+                      var nextCpm = (double) levelCPMs[i + 1];
+                      CPMs[i * 2 + 1] = Math.Sqrt((cpm * cpm + nextCpm * nextCpm) / 2);
+                    }
+                  }
+                }
+                continue;
+              }
+              if (!(Regex.Match(templateId, @"^V(?<id>\d+)_.+") is var match && match.Success)) continue;
+              if (CPMs == null) throw new InvalidProgramException("CPMs should be initialized first");
+              var pokemon = short.Parse(match.Groups["id"].Value);
+              if (pokemon > MEGA_OFFSET) throw new ArgumentOutOfRangeException("Too many pokemons!");
+              var name = names.GetPokemonName(pokemon);
+              var data = template["data"];
+              var settings = data[@"ofaneehdcfm"]; // pokemonsettings
+              if (settings == null) continue;
+              if (settings.ContainsKey(@"bakhocpfeef")) continue; // 'form' no custom form currently
+
+              (short baseAttack, short baseDefense, short baseStamina) GetBaseStats(dynamic root)
+              {
+                var stats = root[@"fpjbenmjnpo"]; // stats
+                short baseAttack = stats[@"pmbigpiicml"]; // baseAttack 
+                short baseDefense = stats[@"lgchfdobkck"]; // baseDefense
+                short baseStamina = stats[@"bkpaapbdbnc"]; // baseStamina
+                return (baseAttack, baseDefense, baseStamina);
+              }
+
+              var pokemonBaseStats = new List<(short, (short, short, short))>(1)
+              {
+                (pokemon, GetBaseStats(settings))
+              };
+              var pokemonNames = new List<PokemonName>(1)
+              {
+                new PokemonName
                 {
                   Pokemon = pokemon,
-                  Attack = baseAttack,
-                  Defense = baseDefense,
-                  Stamina = baseStamina
+                  Name = name
                 }
-              }, cancellationToken);
-
-              for (var cpmIndex = Math.Max((byte)0, LevelMin); cpmIndex < Math.Min(CPM.Length, LevelMax); cpmIndex++)
+              };
+              if (settings[@"lgkbfambbod"] is JArray megaForms) // megaforms
               {
-                var cpm = CPM[cpmIndex];
-                if (cpm < double.Epsilon) continue; // non-existing value
-                Console.WriteLine($"Pokemon {pokemon,-3} Level {cpmIndex/2m+1,-5}");
-                for (var attackIV = MinIV; attackIV <= MaxIV; attackIV++)
-                for (var defenseIV = MinIV; defenseIV <= MaxIV; defenseIV++)
-                for (var staminaIV = MinIV; staminaIV <= MaxIV; staminaIV++)
+                for (var index = 0; index < megaForms.Count; index++)
                 {
-                  var attack = (short) (baseAttack + attackIV);
-                  var defense = (short) (baseDefense + defenseIV);
-                  var stamina = (short) (baseStamina + staminaIV);
-      
-                  var cp = attack * Math.Sqrt(defense) * Math.Sqrt(stamina) * cpm * cpm / 10;
-                  var CP = Math.Max((short)10, (short) Math.Floor(cp));
-                  data.Add(new Stats
+                  var pokemonNumber = checked((short) ((index + 1) * MEGA_OFFSET + pokemon));
+                  dynamic megaForm = megaForms[index];
+                  var meganame = megaForm["ahmjloaldjc"];
+                  switch (meganame?.ToString())
                   {
-                    Pokemon = pokemon,
-                    AttackIV = attackIV,
-                    DefenseIV = defenseIV,
-                    StaminaIV = staminaIV,
-                    Level = cpmIndex,
-                    CP = CP
-                  });
+                    case string mega when mega.EndsWith("_TEMP_EVOLUTION_MEGA"):
+                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name}"});
+                      break;
+                    case string mega when mega.EndsWith("_TEMP_EVOLUTION_MEGA_X"):
+                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name} X"});
+                      break;
+                    case string mega when mega.EndsWith("_TEMP_EVOLUTION_MEGA_Y"):
+                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name} Y"});
+                      break;
+                    default:
+                      throw new ArgumentOutOfRangeException("Unknown pokemon mega form");
+                  }
+
+                  pokemonBaseStats.Add((pokemonNumber, GetBaseStats(megaForm)));
                 }
               }
+
+              await BulkCopy(bulkCopy, pokemonNames, cancellationToken);
               
-              await BulkCopy(bulkCopy, data, cancellationToken);
-              data.Clear();
+              foreach (var (pokemonNumber, (baseAttack, baseDefense, baseStamina)) in pokemonBaseStats)
+              {
+                var pokemonName = pokemonNames.Single(_ => _.Pokemon == pokemonNumber).Name;
+                await BulkCopy(bulkCopy, new[]
+                {
+                  new BaseStats
+                  {
+                    Pokemon = pokemonNumber,
+                    Attack = baseAttack,
+                    Defense = baseDefense,
+                    Stamina = baseStamina
+                  }
+                }, cancellationToken);
+
+                for (var cpmIndex = Math.Max((byte) 0, LevelMin); cpmIndex < Math.Min(CPMs.Length, LevelMax); cpmIndex++)
+                {
+                  var cpm = CPMs[cpmIndex];
+                  Console.WriteLine($"Pokemon {pokemonNumber,4} Level {cpmIndex / 2m + 1,-5} {pokemonName}");
+                  for (var attackIV = MinIV; attackIV <= MaxIV; attackIV++)
+                  for (var defenseIV = MinIV; defenseIV <= MaxIV; defenseIV++)
+                  for (var staminaIV = MinIV; staminaIV <= MaxIV; staminaIV++)
+                  {
+                    var attack = (short) (baseAttack + attackIV);
+                    var defense = (short) (baseDefense + defenseIV);
+                    var stamina = (short) (baseStamina + staminaIV);
+
+                    var cp = attack * Math.Sqrt(defense) * Math.Sqrt(stamina) * cpm * cpm / 10;
+                    var CP = Math.Max((short) 10, (short) Math.Floor(cp));
+                    records.Add(new Stats
+                    {
+                      Pokemon = pokemonNumber,
+                      AttackIV = attackIV,
+                      DefenseIV = defenseIV,
+                      StaminaIV = staminaIV,
+                      Level = cpmIndex,
+                      CP = CP
+                    });
+                  }
+                }
+
+                await BulkCopy(bulkCopy, records, cancellationToken);
+                records.Clear();
+              }
             }
         }
       }
@@ -147,91 +221,5 @@ namespace PoGoMeter.Migrations
       await using var objectReader = ObjectReader.Create(entities, members);
       await bulkCopy.WriteToServerAsync(objectReader, cancellationToken);
     }
-    
-    // TODO: Read from GAME_MASTER.json 
-    private static double[] CPM =
-    {
-      0.094,
-      0.135137432,
-      0.16639787,
-      0.192650919,
-      0.21573247,
-      0.236572661,
-      0.25572005,
-      0.273530381,
-      0.29024988,
-      0.306057377,
-      0.3210876,
-      0.335445036,
-      0.34921268,
-      0.362457751,
-      0.37523559,
-      0.387592406,
-      0.39956728,
-      0.411193551,
-      0.42250001,
-      0.432926419,
-      0.44310755,
-      0.4530599578,
-      0.46279839,
-      0.472336083,
-      0.48168495,
-      0.4908558,
-      0.49985844,
-      0.508701765,
-      0.51739395,
-      0.525942511,
-      0.53435433,
-      0.542635767,
-      0.55079269,
-      0.558830576,
-      0.56675452,
-      0.574569153,
-      0.58227891,
-      0.589887917,
-      0.59740001,
-      0.604818814,
-      0.61215729,
-      0.619399365,
-      0.62656713,
-      0.633644533,
-      0.64065295,
-      0.647576426,
-      0.65443563,
-      0.661214806,
-      0.667934,
-      0.674577537,
-      0.68116492,
-      0.687680648,
-      0.69414365,
-      0.700538673,
-      0.70688421,
-      0.713164996,
-      0.71939909,
-      0.725571552,
-      0.7317,
-      0.734741009,
-      0.73776948,
-      0.740785574,
-      0.74378943,
-      0.746781211,
-      0.74976104,
-      0.752729087,
-      0.75568551,
-      0.758630378,
-      0.76156384,
-      0.764486065,
-      0.76739717,
-      0.770297266,
-      0.7731865,
-      0.776064962,
-      0.77893275,
-      0.781790055,
-      0.78463697,
-      0.787473578,
-      0.79030001,
-      0.0, // non-existing value
-      0.79530001
-    };
   }
 }

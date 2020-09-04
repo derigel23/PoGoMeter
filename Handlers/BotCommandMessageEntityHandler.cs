@@ -16,7 +16,7 @@ namespace PoGoMeter.Handlers
   {
     private readonly ITelegramBotClient myBot;
     private readonly PoGoMeterContext myContext;
-    private readonly Pokemons myPokemons;
+    private readonly Pokemons myPokemons; // TODO: use PokemonName table
 
     public BotCommandMessageEntityHandler(ITelegramBotClient bot, PoGoMeterContext context, Pokemons pokemons)
     {
@@ -42,7 +42,7 @@ namespace PoGoMeter.Handlers
         {
           if (!short.TryParse(segment, out var number))
           {
-            if (myPokemons.GetPokemonNumber(segment.ToString()) is short found)
+            if (myPokemons.GetPokemonNumber(segment.ToString()) is { } found)
             {
               number = found;
             }

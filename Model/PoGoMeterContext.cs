@@ -24,6 +24,12 @@ namespace PoGoMeter.Model
         builder.HasKey(_ => _.Pokemon);
         builder.HasMany(_ => _.Stats).WithOne().HasForeignKey(_ => _.Pokemon);
       });
+
+      modelBuilder.Entity<PokemonName>(builder =>
+      {
+        builder.HasKey(_ => _.Pokemon);
+        builder.Property(_ => _.Pokemon).ValueGeneratedNever();
+      });
       
       modelBuilder.Entity<Ignore>(builder =>
       {

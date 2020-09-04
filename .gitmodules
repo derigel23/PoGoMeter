@@ -6,4 +6,4 @@
 	url = git@github.com:derigel23/TelegramSkeleton.git
 [submodule "pokemongo-game-master"]
 	path = pokemongo-game-master
-	url = D:/Projects/PoGoMeter/pokemongo-game-master
+	url = git@github.com:pokemongo-dev-contrib/pokemongo-game-master.git

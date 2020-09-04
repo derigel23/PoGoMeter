@@ -10,7 +10,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <EmbeddedResource Include="pokemongo-game-master\versions\latest\GAME_MASTER.json">
+    <EmbeddedResource Include="pokemongo-game-master\versions\latest\V2_GAME_MASTER.json">
       <LogicalName>GAME_MASTER.json</LogicalName>
     </EmbeddedResource>
     <EmbeddedResource Include="PoGoAssets\gamemaster\gamemaster.json">
