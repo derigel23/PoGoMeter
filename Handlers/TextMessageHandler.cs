@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -77,37 +78,45 @@ namespace PoGoMeter.Handlers
         var queryAnd = query;
         foreach (var queryAndPart in queryOrPart.Split(new [] { "AND", "&", "|" },StringSplitOptions.RemoveEmptyEntries))
         {
-          if (int.TryParse(queryAndPart, out var pokemonNumber))
+          if (int.TryParse(queryAndPart, NumberStyles.Any, CultureInfo.InvariantCulture, out var pokemonNumber))
           {
             queryAnd = queryAnd.Where(_ => _.Pokemon == pokemonNumber);
           }
           else if (Regex.Match(queryAndPart, "^cp(?<cp>\\d+)$", RegexOptions.IgnoreCase) is var cpMatch && cpMatch.Success)
           {
-            if (!int.TryParse(cpMatch.Groups["cp"].Value, out var targetCP))
+            if (!int.TryParse(cpMatch.Groups["cp"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetCP))
               return false; // can't be
 
             queryAnd = queryAnd.Where(_ => _.CP == targetCP);
           }
           else if (Regex.Match(queryAndPart, "^atk(?<atk>\\d+)$", RegexOptions.IgnoreCase) is var attackMatch && attackMatch.Success)
           {
-            if (!byte.TryParse(attackMatch.Groups["atk"].Value, out var targetAttack))
+            if (!byte.TryParse(attackMatch.Groups["atk"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetAttack))
               return false; // can't be
 
             queryAnd = queryAnd.Where(_ => _.AttackIV == targetAttack);
           }
           else if (Regex.Match(queryAndPart, "^def(?<def>\\d+)$", RegexOptions.IgnoreCase) is var defenseMatch && defenseMatch.Success)
           {
-            if (!byte.TryParse(defenseMatch.Groups["def"].Value, out var targetDefense))
+            if (!byte.TryParse(defenseMatch.Groups["def"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetDefense))
               return false; // can't be
 
             queryAnd = queryAnd.Where(_ => _.DefenseIV == targetDefense);
           }
           else if (Regex.Match(queryAndPart, "^sta(?<sta>\\d+)$", RegexOptions.IgnoreCase) is var staminaMatch && staminaMatch.Success)
           {
-            if (!byte.TryParse(staminaMatch.Groups["sta"].Value, out var targetStamina))
+            if (!byte.TryParse(staminaMatch.Groups["sta"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetStamina))
               return false; // can't be
 
             queryAnd = queryAnd.Where(_ => _.StaminaIV == targetStamina);
+          }
+          else if (Regex.Match(queryAndPart, "^lvl(?<lvl>\\d+([\\.,]\\d+)?)$", RegexOptions.IgnoreCase) is var levelMatch && levelMatch.Success)
+          {
+            if (!decimal.TryParse(levelMatch.Groups["lvl"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetLevelDecimal))
+              return false; // can't be
+
+            var targetLevel = (byte)((targetLevelDecimal - 1) * 2);
+            queryAnd = queryAnd.Where(_ => _.Level == targetLevel);
           }
           else
           {
