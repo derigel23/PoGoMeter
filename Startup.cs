@@ -34,6 +34,7 @@ namespace PoGoMeter
 
       // Register configuration handlers
       services.Configure<BotConfiguration>(Configuration.GetSection("BotConfiguration"));
+      services.Configure<Settings>(Configuration.GetSection("Settings"));
 
       var culture = Configuration["Culture"];
       if (!string.IsNullOrEmpty(culture))

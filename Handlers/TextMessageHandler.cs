@@ -8,6 +8,8 @@ using System.Threading.Tasks;
 using Autofac.Features.Metadata;
 using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using PoGoMeter.Configuration;
 using PoGoMeter.Model;
 using Team23.TelegramSkeleton;
 using Telegram.Bot;
@@ -23,17 +25,21 @@ namespace PoGoMeter.Handlers
     private readonly ITelegramBotClient myBot;
     private readonly PoGoMeterContext myDb;
 
-    private readonly byte myMinIV = 10;
-    private readonly short[] myExcludeMinCheck = { 289 /* Slaking */ };
-    private readonly byte myMinBestBuddyIV = 14;
-    private readonly byte myBestBuddyLevel = 40 * 2 - 1;
+    private readonly byte myMinIV;
+    private readonly short[] myExcludeMinCheck;
+    private readonly byte myMinBestBuddyIV;
+    private readonly byte myBestBuddyLevel;
     
-    public TextMessageHandler(TelemetryClient telemetryClient, IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers,
-      ITelegramBotClient bot, PoGoMeterContext db) : base(bot, messageEntityHandlers)
+    public TextMessageHandler(TelemetryClient telemetryClient, IOptions<Settings> settings, IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers, ITelegramBotClient bot, PoGoMeterContext db)
+      : base(bot, messageEntityHandlers)
     {
       myTelemetryClient = telemetryClient;
       myBot = bot;
       myDb = db;
+      myMinIV = settings.Value?.MinIV ?? 0;
+      myExcludeMinCheck = settings.Value?.ExcludeMinCheck ?? Array.Empty<short>();
+      myMinBestBuddyIV = settings.Value?.BestBuddyMinIV ?? 0;
+      myBestBuddyLevel = settings.Value?.BestBuddyMaxLevel ?? 0;
     }
 
     private const int SIZE_LIMIT = 4096;
