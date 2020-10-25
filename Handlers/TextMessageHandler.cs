@@ -45,6 +45,8 @@ namespace PoGoMeter.Handlers
 
     private const int SIZE_LIMIT = 4096;
 
+    public const byte MAX_LEVEL = (41 - 1) * 2; // best buddy level in halves
+    
     public override async Task<bool?> Handle(Message message, (UpdateType, object) __, CancellationToken cancellationToken = new CancellationToken())
     {
 
@@ -71,10 +73,11 @@ namespace PoGoMeter.Handlers
 
       try
       {
-
       var queryOr = Enumerable.Empty<Stats>().AsQueryable();
+      
       foreach (var queryOrPart in message.Text.Split(new [] { "OR", ",", ";", ":" },StringSplitOptions.RemoveEmptyEntries))
       {
+        bool levelFiltered = false;        
         var queryAnd = query;
         foreach (var queryAndPart in queryOrPart.Split(new [] { "AND", "&", "|" },StringSplitOptions.RemoveEmptyEntries))
         {
@@ -115,6 +118,7 @@ namespace PoGoMeter.Handlers
             if (!decimal.TryParse(levelMatch.Groups["lvl"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetLevelDecimal))
               return false; // can't be
 
+            levelFiltered = true;
             var targetLevel = (byte)((targetLevelDecimal - 1) * 2);
             queryAnd = queryAnd.Where(_ => _.Level == targetLevel);
           }
@@ -125,6 +129,10 @@ namespace PoGoMeter.Handlers
           }
         }
 
+        if (!levelFiltered)
+        {
+          queryAnd = queryAnd.Where(_ => _.Level <= MAX_LEVEL);
+        }
         queryOr = queryOr.Concat(queryAnd);
       }
 

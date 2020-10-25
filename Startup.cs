@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -72,7 +73,8 @@ namespace PoGoMeter
       app
         .UseRequestLocalization()
         .UseStaticFiles()
-        .UseMvc();
+        .UseMvc()
+        .UseRewriter(new RewriteOptions().AddRedirect("^", "refresh"));
     }
   }
 }

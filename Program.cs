@@ -22,7 +22,7 @@ namespace PoGoMeter
         if (configuration.GetValue("InitData", false))
         {
           var fillingMigration = new StatsFillingMigration(serviceScope.ServiceProvider.GetService<PoGoMeterContext>(),
-            configuration.GetConnectionString("PoGoMeterDatabase"), levelMax: 41);
+            configuration.GetConnectionString("PoGoMeterDatabase"));
           
           await fillingMigration.Run(configuration.GetValue("ClearData", false), cancellationToken);
           return;

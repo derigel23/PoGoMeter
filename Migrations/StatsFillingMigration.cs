@@ -20,18 +20,13 @@ namespace PoGoMeter.Migrations
     private readonly PoGoMeterContext myContext;
     private readonly string myConnectionString;
     
-    private byte LevelMin { get; }
-    private byte LevelMax { get; }
-
     private const byte MinIV = 0;
     private const byte MaxIV = 15;
 
-    public StatsFillingMigration(PoGoMeterContext context, string connectionString, byte levelMin = 0, byte levelMax = 100)
+    public StatsFillingMigration(PoGoMeterContext context, string connectionString)
     {
       myContext = context;
       myConnectionString = connectionString;
-      LevelMin = levelMin;
-      LevelMax = checked ((byte) (levelMax * 2 - 1));
     }
     
     private const short MEGA_OFFSET = 1000;
@@ -61,7 +56,7 @@ namespace PoGoMeter.Migrations
               string templateId = template["templateId"];
               if (templateId == "PLAYER_LEVEL_SETTINGS")
               {
-                if (template["data"]["dfacfpghfdo"]["cgifidlgdmc"] is JArray levelCPMs)
+                if (template["data"]["playerLevel"]["cpMultiplier"] is JArray levelCPMs)
                 {
                   CPMs = new Double[levelCPMs.Count * 2 - 1];
                   for (var i = 0; i < levelCPMs.Count; i++)
@@ -82,16 +77,16 @@ namespace PoGoMeter.Migrations
               if (pokemon > MEGA_OFFSET) throw new ArgumentOutOfRangeException("Too many pokemons!");
               var name = names.GetPokemonName(pokemon);
               var data = template["data"];
-              var settings = data[@"ofaneehdcfm"]; // pokemonsettings
+              var settings = data[@"pokemonSettings"];
               if (settings == null) continue;
-              if (settings.ContainsKey(@"bakhocpfeef")) continue; // 'form' no custom form currently
+              if (settings.ContainsKey(@"form")) continue; // 'form' no custom form currently
 
               (short baseAttack, short baseDefense, short baseStamina) GetBaseStats(dynamic root)
               {
-                var stats = root[@"fpjbenmjnpo"]; // stats
-                short baseAttack = stats[@"pmbigpiicml"]; // baseAttack 
-                short baseDefense = stats[@"lgchfdobkck"]; // baseDefense
-                short baseStamina = stats[@"bkpaapbdbnc"]; // baseStamina
+                var stats = root[@"stats"];
+                short baseAttack = stats[@"baseAttack"]; 
+                short baseDefense = stats[@"baseDefense"];
+                short baseStamina = stats[@"baseStamina"];
                 return (baseAttack, baseDefense, baseStamina);
               }
 
@@ -107,22 +102,22 @@ namespace PoGoMeter.Migrations
                   Name = name
                 }
               };
-              if (settings[@"lgkbfambbod"] is JArray megaForms) // megaforms
+              if (settings[@"obTemporaryEvolutions"] is JArray megaForms)
               {
                 for (var index = 0; index < megaForms.Count; index++)
                 {
                   var pokemonNumber = checked((short) ((index + 1) * MEGA_OFFSET + pokemon));
                   dynamic megaForm = megaForms[index];
-                  var meganame = megaForm["ahmjloaldjc"];
+                  var meganame = megaForm["obTemporaryEvolution"];
                   switch (meganame?.ToString())
                   {
-                    case string mega when mega.EndsWith("_TEMP_EVOLUTION_MEGA"):
+                    case "TEMP_EVOLUTION_MEGA":
                       pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name}"});
                       break;
-                    case string mega when mega.EndsWith("_TEMP_EVOLUTION_MEGA_X"):
+                    case "TEMP_EVOLUTION_MEGA_X":
                       pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name} X"});
                       break;
-                    case string mega when mega.EndsWith("_TEMP_EVOLUTION_MEGA_Y"):
+                    case "TEMP_EVOLUTION_MEGA_Y":
                       pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name} Y"});
                       break;
                     default:
@@ -149,7 +144,7 @@ namespace PoGoMeter.Migrations
                   }
                 }, cancellationToken);
 
-                for (var cpmIndex = Math.Max((byte) 0, LevelMin); cpmIndex < Math.Min(CPMs.Length, LevelMax); cpmIndex++)
+                for (byte cpmIndex = 0; cpmIndex < CPMs.Length; cpmIndex++)
                 {
                   var cpm = CPMs[cpmIndex];
                   Console.WriteLine($"Pokemon {pokemonNumber,4} Level {cpmIndex / 2m + 1,-5} {pokemonName}");

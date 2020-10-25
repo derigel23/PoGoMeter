@@ -1,9 +1,9 @@
 [submodule "TelegramSkeleton"]
 	path = TelegramSkeleton
 	url = git@github.com:derigel23/TelegramSkeleton.git
-[submodule "pokemongo-game-master"]
-	path = pokemongo-game-master
-	url = git@github.com:pokemongo-dev-contrib/pokemongo-game-master.git
 [submodule "pogo_assets"]
 	path = pogo_assets
 	url = git@github.com:PokeMiners/pogo_assets.git
+[submodule "game_masters"]
+	path = game_masters
+	url = git@github.com:PokeMiners/game_masters.git
