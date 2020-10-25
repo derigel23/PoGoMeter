@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace PoGoMeter
 {
@@ -18,18 +18,27 @@ namespace PoGoMeter
     public Pokemons()
     {
       using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GAME_TEXTS.json");
-      using var sr = new StreamReader(stream);
-      using var reader = new JsonTextReader(sr);
-      while (reader.Read())
+      using var reader = new StreamReader(stream, Encoding.UTF8);
+      using var jsonReader = new JsonTextReader(reader);
+      
+      if (JToken.ReadFrom(jsonReader)["data"] is JArray data)
       {
-        if (reader.TokenType == JsonToken.String)
+        var i = 0;
+        var key = "";
+        foreach (var element in data)
         {
-          if (reader.Value is string key && key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
+          var value = element.ToString();
+          if (i++ % 2 == 1)
           {
-            var value = reader.ReadAsString();
-
-            myPokemonNames.Add(number, value);
-            myPokemonNumbers.Add(value, number);
+            if (key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
+            {
+              myPokemonNames.Add(number, value);
+              myPokemonNumbers.Add(value, number);
+            }
+          }
+          else
+          {
+            key = value;
           }
         }
       }

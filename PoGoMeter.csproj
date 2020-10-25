@@ -13,10 +13,7 @@
     <EmbeddedResource Include="pokemongo-game-master\versions\latest\V2_GAME_MASTER.json">
       <LogicalName>GAME_MASTER.json</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="PoGoAssets\gamemaster\gamemaster.json">
-      <LogicalName>GAME_MASTER_OLD.json</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PoGoAssets\static_assets\txt\i18n_english.json">
+    <EmbeddedResource Include="pogo_assets\Texts\Latest APK\i18n_english.json">
       <LogicalName>GAME_TEXTS.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
