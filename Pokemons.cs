@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Text;
 using Newtonsoft.Json;
@@ -17,28 +18,32 @@ namespace PoGoMeter
     
     public Pokemons()
     {
-      using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("GAME_TEXTS.json");
-      using var reader = new StreamReader(stream, Encoding.UTF8);
-      using var jsonReader = new JsonTextReader(reader);
-      
-      if (JToken.ReadFrom(jsonReader)["data"] is JArray data)
+      foreach (var textResource in new[] { "GAME_TEXTS_1.txt", "GAME_TEXTS_2.txt" })
       {
-        var i = 0;
-        var key = "";
-        foreach (var element in data)
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(textResource);
+
+        using var reader = new StreamReader(stream ?? throw new ArgumentNullException(), Encoding.UTF8);
+
+        var key = default(string);
+        while (reader.ReadLine() is { } line)
         {
-          var value = element.ToString();
-          if (i++ % 2 == 1)
+          var lineParts = line.Split(new[] {':'}, 2);
+          var value = lineParts.Skip(1).FirstOrDefault()?.Trim();
+          switch (lineParts[0])
           {
-            if (key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
-            {
-              myPokemonNames.Add(number, value);
-              myPokemonNumbers.Add(value, number);
-            }
-          }
-          else
-          {
-            key = value;
+            case "RESOURCE ID":
+              key = value;
+              break;
+            case "TEXT" when !string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value):
+              if (key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
+              {
+                myPokemonNames.Add(number, value);
+                myPokemonNumbers.Add(value, number);
+              }
+              goto default;
+            default:
+              key = default;
+              break;
           }
         }
       }
