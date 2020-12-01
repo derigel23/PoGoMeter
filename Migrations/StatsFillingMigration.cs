@@ -112,14 +112,14 @@ namespace PoGoMeter.Migrations
                   Name = name
                 }
               };
-              if (settings[@"obTemporaryEvolutions"] is JArray megaForms)
+              if (settings[@"tempEvoOverrides"] is JArray megaForms)
               {
                 for (var index = 0; index < megaForms.Count; index++)
                 {
                   var pokemonNumber = checked((short) ((index + 1) * MEGA_OFFSET + pokemon));
                   dynamic megaForm = megaForms[index];
                   var megaName = name;
-                  switch (megaForm["obTemporaryEvolution"]?.ToString())
+                  switch (megaForm["tempEvoId"]?.ToString())
                   {
                     case "TEMP_EVOLUTION_MEGA":
                       megaName = $"Mega {name}";
