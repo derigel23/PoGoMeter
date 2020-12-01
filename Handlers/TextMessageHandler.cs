@@ -6,7 +6,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
-using Autofac.Features.Metadata;
 using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -31,7 +30,7 @@ namespace PoGoMeter.Handlers
     private readonly byte myMinBestBuddyIV;
     private readonly byte myBestBuddyLevel;
     
-    public TextMessageHandler(TelemetryClient telemetryClient, IOptions<Settings> settings, IEnumerable<Meta<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers, ITelegramBotClient bot, PoGoMeterContext db)
+    public TextMessageHandler(TelemetryClient telemetryClient, IOptions<Settings> settings, IEnumerable<Lazy<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers, ITelegramBotClient bot, PoGoMeterContext db)
       : base(bot, messageEntityHandlers)
     {
       myTelemetryClient = telemetryClient;

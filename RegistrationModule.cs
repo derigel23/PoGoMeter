@@ -1,6 +1,5 @@
 ﻿using Autofac;
 using Team23.TelegramSkeleton;
-using Module = Autofac.Module;
 
 namespace PoGoMeter
 {
@@ -10,7 +9,7 @@ namespace PoGoMeter
     {
       builder.RegisterType<Pokemons>().SingleInstance();
       
-      builder.RegisterTelegramSkeleton();
+      builder.RegisterTelegramSkeleton<TelegramBotClientEx>();
     }
   }
 }

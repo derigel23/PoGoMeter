@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel;
 using JetBrains.Annotations;
 using Team23.TelegramSkeleton;
 using Telegram.Bot.Types;
@@ -10,7 +11,7 @@ namespace PoGoMeter.Handlers
   
   [MeansImplicitUse]
   [BaseTypeRequired(typeof(IMessageEntityHandler))]
-  public class MessageEntityTypeAttribute : Attribute, IHandlerAttribute<MessageEntity, object>
+  public class MessageEntityTypeAttribute : DescriptionAttribute, IHandlerAttribute<MessageEntity, object>
   {
     public MessageEntityType EntityType { get; set; }
 
