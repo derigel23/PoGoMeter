@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Infrastructure;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -46,6 +48,12 @@ namespace PoGoMeter
           options.RequestCultureProviders = null;
         });
       }
+
+      services
+        .AddSingleton<IActionContextAccessor, ActionContextAccessor>()
+        .AddScoped(x => x
+          .GetRequiredService<IUrlHelperFactory>()
+          .GetUrlHelper(x.GetRequiredService<IActionContextAccessor>().ActionContext));
 
       services.AddMemoryCache();
       services.AddHttpClient();
