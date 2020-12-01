@@ -20,13 +20,18 @@ namespace PoGoMeter.Migrations
     private readonly PoGoMeterContext myContext;
     private readonly string myConnectionString;
     
+    private byte LevelMin { get; }
+    private byte LevelMax { get; }
+
     private const byte MinIV = 0;
     private const byte MaxIV = 15;
 
-    public StatsFillingMigration(PoGoMeterContext context, string connectionString)
+    public StatsFillingMigration(PoGoMeterContext context, string connectionString, byte levelMin = 0, byte levelMax = 51)
     {
       myContext = context;
       myConnectionString = connectionString;
+      LevelMin = levelMin;
+      LevelMax = checked ((byte) (levelMax * 2 - 1));
     }
     
     private const short MEGA_OFFSET = 1000;
@@ -81,18 +86,23 @@ namespace PoGoMeter.Migrations
               if (settings == null) continue;
               if (settings.ContainsKey(@"form")) continue; // 'form' no custom form currently
 
-              (short baseAttack, short baseDefense, short baseStamina) GetBaseStats(dynamic root)
+              (short? baseAttack, short? baseDefense, short? baseStamina) GetBaseStats(dynamic root)
               {
                 var stats = root[@"stats"];
-                short baseAttack = stats[@"baseAttack"]; 
-                short baseDefense = stats[@"baseDefense"];
-                short baseStamina = stats[@"baseStamina"];
+                short? baseAttack = stats[@"baseAttack"]; 
+                short? baseDefense = stats[@"baseDefense"];
+                short? baseStamina = stats[@"baseStamina"];
                 return (baseAttack, baseDefense, baseStamina);
               }
 
+              if (!(GetBaseStats(settings) is (short atk, short def, short sta)))
+              {
+                await Console.Error.WriteLineAsync($"Unknown stats for {pokemon,4} {name}");
+                continue;
+              }
               var pokemonBaseStats = new List<(short, (short, short, short))>(1)
               {
-                (pokemon, GetBaseStats(settings))
+                (pokemon, (atk, def, sta))
               };
               var pokemonNames = new List<PokemonName>(1)
               {
@@ -108,23 +118,33 @@ namespace PoGoMeter.Migrations
                 {
                   var pokemonNumber = checked((short) ((index + 1) * MEGA_OFFSET + pokemon));
                   dynamic megaForm = megaForms[index];
-                  var meganame = megaForm["obTemporaryEvolution"];
-                  switch (meganame?.ToString())
+                  var megaName = name;
+                  switch (megaForm["obTemporaryEvolution"]?.ToString())
                   {
                     case "TEMP_EVOLUTION_MEGA":
-                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name}"});
+                      megaName = $"Mega {name}";
+                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = megaName});
                       break;
                     case "TEMP_EVOLUTION_MEGA_X":
-                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name} X"});
+                      megaName = $"Mega {name} X";
+                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = megaName});
                       break;
                     case "TEMP_EVOLUTION_MEGA_Y":
-                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = $"Mega {name} Y"});
+                      megaName = $"Mega {name} Y";
+                      pokemonNames.Add(new PokemonName { Pokemon = pokemonNumber, Name = megaName});
                       break;
                     default:
                       throw new ArgumentOutOfRangeException("Unknown pokemon mega form");
                   }
 
-                  pokemonBaseStats.Add((pokemonNumber, GetBaseStats(megaForm)));
+                  if (GetBaseStats(megaForm) is (short megaAtk, short megaDef, short megaSta))
+                  {
+                    pokemonBaseStats.Add((pokemonNumber, (megaAtk, megaDef, megaSta)));
+                  }
+                  else
+                  {
+                    await Console.Error.WriteLineAsync($"Unknown stats for {pokemonNumber,4} {megaName}");
+                  }
                 }
               }
 
@@ -144,10 +164,10 @@ namespace PoGoMeter.Migrations
                   }
                 }, cancellationToken);
 
-                for (byte cpmIndex = 0; cpmIndex < CPMs.Length; cpmIndex++)
+                for (var cpmIndex = Math.Max((byte) 0, LevelMin); cpmIndex < Math.Min(CPMs.Length, LevelMax); cpmIndex++)
                 {
                   var cpm = CPMs[cpmIndex];
-                  Console.WriteLine($"Pokemon {pokemonNumber,4} Level {cpmIndex / 2m + 1,-5} {pokemonName}");
+                  await Console.Out.WriteLineAsync($"Pokemon {pokemonNumber,4} Level {cpmIndex / 2m + 1,-5} {pokemonName}");
                   for (var attackIV = MinIV; attackIV <= MaxIV; attackIV++)
                   for (var defenseIV = MinIV; defenseIV <= MaxIV; defenseIV++)
                   for (var staminaIV = MinIV; staminaIV <= MaxIV; staminaIV++)
