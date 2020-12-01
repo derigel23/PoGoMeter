@@ -13,7 +13,7 @@
     <EmbeddedResource Include="game_masters\latest\latest.json">
       <LogicalName>GAME_MASTER.json</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="pogo_assets\Texts\Latest APK\i18n_english.json">
+    <EmbeddedResource Include="pogo_assets\Texts\Latest APK\JSON\i18n_english.json">
       <LogicalName>GAME_TEXTS.json</LogicalName>
     </EmbeddedResource>
   </ItemGroup>

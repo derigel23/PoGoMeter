@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using PoGoMeter.Configuration;
 using PoGoMeter.Handlers;
 using PoGoMeter.Model;
 using Team23.TelegramSkeleton;
-using Telegram.Bot;
 
 namespace PoGoMeter
 {
@@ -49,7 +49,8 @@ namespace PoGoMeter
 
       services.AddMemoryCache();
       services.AddHttpClient();
-      services.AddHttpClient<ITelegramBotClient, PoGoMeterTelegramBotClient>();
+      services.RegisterTelegramClients<PoGoMeterTelegramBotClient>(provider =>
+        new [] { provider.GetService<IOptions<BotConfiguration>>().Value?.BotToken });
 
       services
         .AddMvc(options => options.EnableEndpointRouting = false)
