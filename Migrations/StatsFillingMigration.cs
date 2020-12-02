@@ -26,15 +26,17 @@ namespace PoGoMeter.Migrations
     private const byte MinIV = 0;
     private const byte MaxIV = 15;
 
-    public StatsFillingMigration(PoGoMeterContext context, string connectionString, byte levelMin = 0, byte levelMax = 51)
+    public StatsFillingMigration(PoGoMeterContext context, string connectionString, byte levelMin = 0, byte levelMax = MAX_LEVEL)
     {
       myContext = context;
       myConnectionString = connectionString;
       LevelMin = levelMin;
-      LevelMax = checked ((byte) (levelMax * 2 - 1));
+      LevelMax = levelMax;
     }
     
     private const short MEGA_OFFSET = 1000;
+    
+    public const byte MAX_LEVEL = 51 * 2 - 1;
     
     public async Task Run(bool clearData = false, CancellationToken cancellationToken = default)
     {
