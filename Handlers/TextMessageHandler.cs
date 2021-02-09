@@ -10,6 +10,7 @@ using Microsoft.ApplicationInsights;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PoGoMeter.Configuration;
+using PoGoMeter.Migrations;
 using PoGoMeter.Model;
 using Team23.TelegramSkeleton;
 using Telegram.Bot;
@@ -27,9 +28,10 @@ namespace PoGoMeter.Handlers
 
     private readonly byte myMinIV;
     private readonly short[] myExcludeMinCheck;
-    private readonly byte myMinBestBuddyIV;
-    private readonly byte myBestBuddyLevel;
-    
+    private readonly byte myBestBuddyMinIV;
+    private readonly byte myBestBuddyMinLevel;
+    private Dictionary<short, byte> mySpecialMinIVCheck;
+
     public TextMessageHandler(TelemetryClient telemetryClient, IOptions<Settings> settings, IEnumerable<Lazy<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers, ITelegramBotClient bot, PoGoMeterContext db)
       : base(bot, messageEntityHandlers)
     {
@@ -37,14 +39,15 @@ namespace PoGoMeter.Handlers
       myBot = bot;
       myDb = db;
       myMinIV = settings.Value?.MinIV ?? 0;
-      myExcludeMinCheck = settings.Value?.ExcludeMinCheck ?? Array.Empty<short>();
-      myMinBestBuddyIV = settings.Value?.BestBuddyMinIV ?? 0;
-      myBestBuddyLevel = settings.Value?.BestBuddyMaxLevel ?? 0;
+      myBestBuddyMinIV = settings.Value?.BestBuddyMinIV ?? 0;
+      myBestBuddyMinLevel = settings.Value?.BestBuddyMinLevel ?? 0;
+      mySpecialMinIVCheck = settings.Value?.SpecialMinIVCheck ?? new Dictionary<short, byte>(0);
+      myExcludeMinCheck = mySpecialMinIVCheck.Keys.ToArray();
     }
 
     private const int SIZE_LIMIT = 4096;
 
-    public const byte MAX_LEVEL = (41 - 1) * 2; // best buddy level in halves
+    public const byte MAX_LEVEL = StatsFillingMigration.MAX_LEVEL;
     
     public override async Task<bool?> Handle(Message message, (UpdateType, object) __, CancellationToken cancellationToken = new CancellationToken())
     {
@@ -59,17 +62,20 @@ namespace PoGoMeter.Handlers
 
       // https://pokemongo.gamepress.gg/guide-search-bar
 
-      var query = myDb.Stats
+      IQueryable<Stats> query = myDb.Stats;
+      
+      // special criteria for Min IV
+      query = query
         .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) ||  _.AttackIV >= myMinIV)
         .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.DefenseIV >= myMinIV)
         .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.StaminaIV >= myMinIV);
-      
+
       // special criteria for best buddy
       query = query
-        .Where(_ => _.Level < myBestBuddyLevel ||  _.AttackIV >= myMinBestBuddyIV)
-        .Where(_ => _.Level < myBestBuddyLevel || _.DefenseIV >= myMinBestBuddyIV)
-        .Where(_ => _.Level < myBestBuddyLevel || _.StaminaIV >= myMinBestBuddyIV);
-
+        .Where(_ => _.Level < myBestBuddyMinLevel || myExcludeMinCheck.Contains(_.Pokemon) ||  _.AttackIV >= myBestBuddyMinIV)
+        .Where(_ => _.Level < myBestBuddyMinLevel || myExcludeMinCheck.Contains(_.Pokemon) || _.DefenseIV >= myBestBuddyMinIV)
+        .Where(_ => _.Level < myBestBuddyMinLevel || myExcludeMinCheck.Contains(_.Pokemon) || _.StaminaIV >= myBestBuddyMinIV);
+      
       try
       {
       var queryOr = Enumerable.Empty<Stats>().AsQueryable();
@@ -146,7 +152,9 @@ namespace PoGoMeter.Handlers
       var outputs = new List<string>();
 
       var stats = queryOr.ToList();
-
+      stats.RemoveAll(_ =>
+        mySpecialMinIVCheck.TryGetValue(_.Pokemon, out var minIV) && !(_.AttackIV >= minIV && _.DefenseIV >= minIV && _.StaminaIV >= minIV));
+      
       if (stats.Count == 0)
       {
         await myBot.SendTextMessageAsync(message.Chat, "No such pokemon", ParseMode.Markdown, cancellationToken: cancellationToken);

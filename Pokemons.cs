@@ -4,8 +4,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace PoGoMeter
 {
@@ -37,8 +35,18 @@ namespace PoGoMeter
             case "TEXT" when !string.IsNullOrEmpty(key) && !string.IsNullOrEmpty(value):
               if (key.StartsWith(pokemonNamePrefix) && short.TryParse(key.Substring(pokemonNamePrefix.Length), out var number))
               {
-                myPokemonNames.Add(number, value);
-                myPokemonNumbers.Add(value, number);
+                if (!myPokemonNames.TryAdd(number, value))
+                {
+                  var existingValue = myPokemonNames[number];
+                  if (existingValue != value)
+                  {
+                    Console.Error.WriteLineAsync($"Mismatching value for {number}: {value} -> {existingValue}");
+                  }
+                }
+                else
+                {
+                  myPokemonNumbers.TryAdd(value, number);
+                }
               }
               goto default;
             default:
