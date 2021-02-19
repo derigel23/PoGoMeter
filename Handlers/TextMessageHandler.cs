@@ -228,7 +228,10 @@ namespace PoGoMeter.Handlers
       }
 
       foreach (var text in outputs)
+      {
         await myBot.SendTextMessageAsync(message.Chat, text, ParseMode.Markdown, cancellationToken: cancellationToken);
+        await Task.Delay(1000, cancellationToken);
+      }
       }
       catch (Exception ex)
       {
