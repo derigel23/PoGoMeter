@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
@@ -27,10 +28,8 @@ namespace PoGoMeter.Handlers
     private readonly PoGoMeterContext myDb;
 
     private readonly byte myMinIV;
-    private readonly short[] myExcludeMinCheck;
     private readonly byte myBestBuddyMinIV;
     private readonly byte myBestBuddyMinLevel;
-    private Dictionary<short, byte> mySpecialMinIVCheck;
 
     public TextMessageHandler(TelemetryClient telemetryClient, IOptions<Settings> settings, IEnumerable<Lazy<Func<Message, IMessageEntityHandler<object, bool?>>, MessageEntityTypeAttribute>> messageEntityHandlers, ITelegramBotClient bot, PoGoMeterContext db)
       : base(bot, messageEntityHandlers)
@@ -41,8 +40,6 @@ namespace PoGoMeter.Handlers
       myMinIV = settings.Value?.MinIV ?? 0;
       myBestBuddyMinIV = settings.Value?.BestBuddyMinIV ?? 0;
       myBestBuddyMinLevel = settings.Value?.BestBuddyMinLevel ?? 0;
-      mySpecialMinIVCheck = settings.Value?.SpecialMinIVCheck ?? new Dictionary<short, byte>(0);
-      myExcludeMinCheck = mySpecialMinIVCheck.Keys.ToArray();
     }
 
     private const int SIZE_LIMIT = 4096;
@@ -62,19 +59,17 @@ namespace PoGoMeter.Handlers
 
       // https://pokemongo.gamepress.gg/guide-search-bar
 
-      IQueryable<Stats> query = myDb.Stats;
+      IQueryable<Stats> rawQuery = myDb.Stats;
       
-      // special criteria for Min IV
-      query = query
-        .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) ||  _.AttackIV >= myMinIV)
-        .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.DefenseIV >= myMinIV)
-        .Where(_ => myExcludeMinCheck.Contains(_.Pokemon) || _.StaminaIV >= myMinIV);
-
-      // special criteria for best buddy
-      query = query
-        .Where(_ => _.Level < myBestBuddyMinLevel || myExcludeMinCheck.Contains(_.Pokemon) ||  _.AttackIV >= myBestBuddyMinIV)
-        .Where(_ => _.Level < myBestBuddyMinLevel || myExcludeMinCheck.Contains(_.Pokemon) || _.DefenseIV >= myBestBuddyMinIV)
-        .Where(_ => _.Level < myBestBuddyMinLevel || myExcludeMinCheck.Contains(_.Pokemon) || _.StaminaIV >= myBestBuddyMinIV);
+      IQueryable<Stats> filteredQuery = rawQuery
+        // special criteria for Min IV
+        .Where(_ => _.AttackIV >= myMinIV)
+        .Where(_ => _.DefenseIV >= myMinIV)
+        .Where(_ => _.StaminaIV >= myMinIV)
+        // special criteria for best buddy
+        .Where(_ => _.Level < myBestBuddyMinLevel || _.AttackIV >= myBestBuddyMinIV)
+        .Where(_ => _.Level < myBestBuddyMinLevel || _.DefenseIV >= myBestBuddyMinIV)
+        .Where(_ => _.Level < myBestBuddyMinLevel || _.StaminaIV >= myBestBuddyMinIV);
       
       try
       {
@@ -83,40 +78,41 @@ namespace PoGoMeter.Handlers
       foreach (var queryOrPart in message.Text.Split(new [] { "OR", ",", ";", ":" },StringSplitOptions.RemoveEmptyEntries))
       {
         bool levelFiltered = false;        
-        var queryAnd = query;
+        bool noFilter = false;        
+        var queryAndFilters = new List<Expression<Func<Stats, bool>>>() ;
         foreach (var queryAndPart in queryOrPart.Split(new [] { "AND", "&", "|" },StringSplitOptions.RemoveEmptyEntries))
         {
           if (int.TryParse(queryAndPart, NumberStyles.Any, CultureInfo.InvariantCulture, out var pokemonNumber))
           {
-            queryAnd = queryAnd.Where(_ => _.Pokemon == pokemonNumber);
+            queryAndFilters.Add(_ => _.Pokemon == pokemonNumber);
           }
           else if (Regex.Match(queryAndPart, "^cp(?<cp>\\d+)$", RegexOptions.IgnoreCase) is var cpMatch && cpMatch.Success)
           {
             if (!int.TryParse(cpMatch.Groups["cp"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetCP))
               return false; // can't be
 
-            queryAnd = queryAnd.Where(_ => _.CP == targetCP);
+            queryAndFilters.Add(_ => _.CP == targetCP);
           }
           else if (Regex.Match(queryAndPart, "^atk(?<atk>\\d+)$", RegexOptions.IgnoreCase) is var attackMatch && attackMatch.Success)
           {
             if (!byte.TryParse(attackMatch.Groups["atk"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetAttack))
               return false; // can't be
 
-            queryAnd = queryAnd.Where(_ => _.AttackIV == targetAttack);
+            queryAndFilters.Add(_ => _.AttackIV == targetAttack);
           }
           else if (Regex.Match(queryAndPart, "^def(?<def>\\d+)$", RegexOptions.IgnoreCase) is var defenseMatch && defenseMatch.Success)
           {
             if (!byte.TryParse(defenseMatch.Groups["def"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetDefense))
               return false; // can't be
 
-            queryAnd = queryAnd.Where(_ => _.DefenseIV == targetDefense);
+            queryAndFilters.Add(_ => _.DefenseIV == targetDefense);
           }
           else if (Regex.Match(queryAndPart, "^sta(?<sta>\\d+)$", RegexOptions.IgnoreCase) is var staminaMatch && staminaMatch.Success)
           {
             if (!byte.TryParse(staminaMatch.Groups["sta"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetStamina))
               return false; // can't be
 
-            queryAnd = queryAnd.Where(_ => _.StaminaIV == targetStamina);
+            queryAndFilters.Add(_ => _.StaminaIV == targetStamina);
           }
           else if (Regex.Match(queryAndPart, "^lvl(?<lvl>\\d+([\\.,]\\d+)?)$", RegexOptions.IgnoreCase) is var levelMatch && levelMatch.Success)
           {
@@ -125,7 +121,11 @@ namespace PoGoMeter.Handlers
 
             levelFiltered = true;
             var targetLevel = (byte)((targetLevelDecimal - 1) * 2);
-            queryAnd = queryAnd.Where(_ => _.Level == targetLevel);
+            queryAndFilters.Add(_ => _.Level == targetLevel);
+          }
+          else if (Regex.Match(queryAndPart, "^nofilter$", RegexOptions.IgnoreCase) is var noFilterMatch && noFilterMatch.Success)
+          {
+            noFilter = true;
           }
           else
           {
@@ -134,11 +134,13 @@ namespace PoGoMeter.Handlers
           }
         }
 
-        if (!levelFiltered)
+        if (!noFilter && !levelFiltered)
         {
-          queryAnd = queryAnd.Where(_ => _.Level <= MAX_LEVEL);
+          queryAndFilters.Add(_ => _.Level <= MAX_LEVEL);
         }
-        queryOr = queryOr.Concat(queryAnd);
+        
+        queryOr = queryOr.Concat(queryAndFilters.Aggregate(noFilter ? rawQuery : filteredQuery, 
+          (query, filter) => query.Where(filter)));
       }
 
       var ignore = await myDb.Ignore.Where(_ => _.UserId == message.From.Id).Select(_ => _.Pokemon).ToListAsync(cancellationToken);
@@ -152,8 +154,6 @@ namespace PoGoMeter.Handlers
       var outputs = new List<string>();
 
       var stats = queryOr.ToList();
-      stats.RemoveAll(_ =>
-        mySpecialMinIVCheck.TryGetValue(_.Pokemon, out var minIV) && !(_.AttackIV >= minIV && _.DefenseIV >= minIV && _.StaminaIV >= minIV));
       
       if (stats.Count == 0)
       {
