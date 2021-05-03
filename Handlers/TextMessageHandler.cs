@@ -129,8 +129,17 @@ namespace PoGoMeter.Handlers
           }
           else
           {
-            await myBot.SendTextMessageAsync(message.Chat, @"Unknown command. Enter target CP with command `cpXXXX`.", ParseMode.Markdown, cancellationToken: cancellationToken);
-            return true;
+            // try find pokemon name
+            var pokemonByName = await myDb.Set<PokemonName>().Where(_ => EF.Functions.Collate(_.Name, "SQL_Latin1_General_CP1_CI_AI") == queryAndPart).FirstOrDefaultAsync(cancellationToken);
+            if (pokemonByName != null)
+            {
+              queryAndFilters.Add(_ => _.Pokemon == pokemonByName.Pokemon);
+            }
+            else
+            {
+              await myBot.SendTextMessageAsync(message.Chat, @"Unknown command. Enter target CP with command `cpXXXX`.", ParseMode.Markdown, cancellationToken: cancellationToken);
+              return true;
+            }
           }
         }
 
