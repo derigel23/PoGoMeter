@@ -73,7 +73,7 @@ namespace PoGoMeter.Handlers
       
       try
       {
-      var queryOr = Enumerable.Empty<Stats>().AsQueryable();
+      IQueryable<Stats> queryOr = rawQuery.Take(0);
       
       foreach (var queryOrPart in message.Text.Split(new [] { "OR", ",", ";", ":" },StringSplitOptions.RemoveEmptyEntries))
       {
@@ -82,13 +82,13 @@ namespace PoGoMeter.Handlers
         var queryAndFilters = new List<Expression<Func<Stats, bool>>>() ;
         foreach (var queryAndPart in queryOrPart.Split(new [] { "AND", "&", "|" },StringSplitOptions.RemoveEmptyEntries))
         {
-          if (int.TryParse(queryAndPart, NumberStyles.Any, CultureInfo.InvariantCulture, out var pokemonNumber))
+          if (short.TryParse(queryAndPart, NumberStyles.Any, CultureInfo.InvariantCulture, out var pokemonNumber))
           {
             queryAndFilters.Add(_ => _.Pokemon == pokemonNumber);
           }
           else if (Regex.Match(queryAndPart, "^cp(?<cp>\\d+)$", RegexOptions.IgnoreCase) is var cpMatch && cpMatch.Success)
           {
-            if (!int.TryParse(cpMatch.Groups["cp"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetCP))
+            if (!short.TryParse(cpMatch.Groups["cp"].Value, NumberStyles.Any, CultureInfo.InvariantCulture, out var targetCP))
               return false; // can't be
 
             queryAndFilters.Add(_ => _.CP == targetCP);
