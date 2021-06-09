@@ -130,10 +130,11 @@ namespace PoGoMeter.Handlers
           else
           {
             // try find pokemon name
-            var pokemonByName = await myDb.Set<PokemonName>().Where(_ => EF.Functions.Collate(_.Name, "SQL_Latin1_General_CP1_CI_AI") == queryAndPart).FirstOrDefaultAsync(cancellationToken);
-            if (pokemonByName != null)
+            var pokemonsByName = await myDb.Set<PokemonName>().Where(_ => EF.Functions.Like(_.Name, $"%{queryAndPart}%")).ToListAsync(cancellationToken);
+            if (pokemonsByName.Count > 0)
             {
-              queryAndFilters.Add(_ => _.Pokemon == pokemonByName.Pokemon);
+              var pokemonNumbers = pokemonsByName.Select(name => name.Pokemon).ToList();
+              queryAndFilters.Add(_ => pokemonNumbers.Contains(_.Pokemon));
             }
             else
             {
