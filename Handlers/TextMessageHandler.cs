@@ -59,7 +59,7 @@ namespace PoGoMeter.Handlers
 
       // https://pokemongo.gamepress.gg/guide-search-bar
 
-      IQueryable<Stats> rawQuery = myDb.Stats;
+      IQueryable<Stats> rawQuery = myDb.Stats.OrderBy(stats => stats.Pokemon);
       
       IQueryable<Stats> filteredQuery = rawQuery
         // special criteria for Min IV
