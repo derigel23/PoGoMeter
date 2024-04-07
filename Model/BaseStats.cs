@@ -14,5 +14,7 @@ namespace PoGoMeter.Model
     public decimal Weight { get; set; }
     
     public List<Stats> Stats { get; set; }
+    
+    public PokemonName Name { get; }
   }
 }

@@ -103,6 +103,15 @@ namespace PoGoMeter.Migrations
                     b.ToTable("Stats", "PoGoMeter");
                 });
 
+            modelBuilder.Entity("PoGoMeter.Model.PokemonName", b =>
+                {
+                    b.HasOne("PoGoMeter.Model.BaseStats", null)
+                        .WithOne("Name")
+                        .HasForeignKey("PoGoMeter.Model.PokemonName", "Pokemon")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("PoGoMeter.Model.Stats", b =>
                 {
                     b.HasOne("PoGoMeter.Model.BaseStats", null)
@@ -114,6 +123,8 @@ namespace PoGoMeter.Migrations
 
             modelBuilder.Entity("PoGoMeter.Model.BaseStats", b =>
                 {
+                    b.Navigation("Name");
+
                     b.Navigation("Stats");
                 });
 #pragma warning restore 612, 618

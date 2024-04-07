@@ -8,6 +8,8 @@ namespace PoGoMeter.Model
       : base(options) { }
 
     public DbSet<Stats> Stats { get; set; }
+    
+    public DbSet<BaseStats> BaseStats { get; set; }
     public DbSet<Ignore> Ignore { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -23,6 +25,7 @@ namespace PoGoMeter.Model
       {
         builder.HasKey(t => t.Pokemon);
         builder.HasMany(t => t.Stats).WithOne().HasForeignKey(t => t.Pokemon);
+        builder.HasOne(t => t.Name).WithOne().HasForeignKey<PokemonName>(t => t.Pokemon);
         builder.Property(t => t.Height).HasColumnType("decimal(9,3)");
         builder.Property(t => t.Weight).HasColumnType("decimal(9,3)");
       });
