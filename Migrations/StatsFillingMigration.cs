@@ -35,7 +35,7 @@ namespace PoGoMeter.Migrations
       LevelMax = levelMax;
     }
     
-    private const short MEGA_OFFSET = 1000;
+    private const short MEGA_OFFSET = 10000;
     
     public const byte MAX_LEVEL = 51 * 2 - 1;
 
