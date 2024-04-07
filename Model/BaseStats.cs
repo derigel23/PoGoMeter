@@ -9,6 +9,10 @@ namespace PoGoMeter.Model
     public short Defense { get; set; }
     public short Stamina { get; set; }
     
+    public decimal Height { get; set; }
+    
+    public decimal Weight { get; set; }
+    
     public List<Stats> Stats { get; set; }
   }
 }

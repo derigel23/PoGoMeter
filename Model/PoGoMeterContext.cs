@@ -16,25 +16,27 @@ namespace PoGoMeter.Model
 
       modelBuilder.Entity<Stats>(builder =>
       {
-        builder.HasKey(_ => new { _.Pokemon, _.CP, _.Level, _.AttackIV, _.DefenseIV, _.StaminaIV });
+        builder.HasKey(t => new { t.Pokemon, t.CP, t.Level, t.AttackIV, t.DefenseIV, t.StaminaIV });
       });
 
       modelBuilder.Entity<BaseStats>(builder =>
       {
-        builder.HasKey(_ => _.Pokemon);
-        builder.HasMany(_ => _.Stats).WithOne().HasForeignKey(_ => _.Pokemon);
+        builder.HasKey(t => t.Pokemon);
+        builder.HasMany(t => t.Stats).WithOne().HasForeignKey(t => t.Pokemon);
+        builder.Property(t => t.Height).HasColumnType("decimal(9,3)");
+        builder.Property(t => t.Weight).HasColumnType("decimal(9,3)");
       });
 
       modelBuilder.Entity<PokemonName>(builder =>
       {
-        builder.HasKey(_ => _.Pokemon);
-        builder.Property(_ => _.Pokemon).ValueGeneratedNever();
+        builder.HasKey(t => t.Pokemon);
+        builder.Property(t => t.Pokemon).ValueGeneratedNever();
       });
       
       modelBuilder.Entity<Ignore>(builder =>
       {
-        builder.HasKey(_ => new { _.UserId, _.Pokemon });
-        builder.HasIndex(_ => _.UserId);
+        builder.HasKey(t => new { t.UserId, t.Pokemon });
+        builder.HasIndex(t => t.UserId);
       });
     }
   }

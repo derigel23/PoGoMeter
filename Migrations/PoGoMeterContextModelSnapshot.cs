@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PoGoMeter.Model;
 
+#nullable disable
+
 namespace PoGoMeter.Migrations
 {
     [DbContext(typeof(PoGoMeterContext))]
@@ -15,16 +17,18 @@ namespace PoGoMeter.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("PoGoMeter")
-                .HasAnnotation("Relational:MaxIdentifierLength", 128)
-                .HasAnnotation("ProductVersion", "5.0.4")
-                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                .HasAnnotation("ProductVersion", "6.0.0")
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder, 1L, 1);
 
             modelBuilder.Entity("PoGoMeter.Model.BaseStats", b =>
                 {
                     b.Property<short>("Pokemon")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("smallint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("smallint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<short>("Pokemon"), 1L, 1);
 
                     b.Property<short>("Attack")
                         .HasColumnType("smallint");
@@ -32,12 +36,18 @@ namespace PoGoMeter.Migrations
                     b.Property<short>("Defense")
                         .HasColumnType("smallint");
 
+                    b.Property<decimal>("Height")
+                        .HasColumnType("decimal(9,3)");
+
                     b.Property<short>("Stamina")
                         .HasColumnType("smallint");
 
+                    b.Property<decimal>("Weight")
+                        .HasColumnType("decimal(9,3)");
+
                     b.HasKey("Pokemon");
 
-                    b.ToTable("BaseStats");
+                    b.ToTable("BaseStats", "PoGoMeter");
                 });
 
             modelBuilder.Entity("PoGoMeter.Model.Ignore", b =>
@@ -52,7 +62,7 @@ namespace PoGoMeter.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Ignore");
+                    b.ToTable("Ignore", "PoGoMeter");
                 });
 
             modelBuilder.Entity("PoGoMeter.Model.PokemonName", b =>
@@ -65,7 +75,7 @@ namespace PoGoMeter.Migrations
 
                     b.HasKey("Pokemon");
 
-                    b.ToTable("PokemonName");
+                    b.ToTable("PokemonName", "PoGoMeter");
                 });
 
             modelBuilder.Entity("PoGoMeter.Model.Stats", b =>
@@ -90,7 +100,7 @@ namespace PoGoMeter.Migrations
 
                     b.HasKey("Pokemon", "CP", "Level", "AttackIV", "DefenseIV", "StaminaIV");
 
-                    b.ToTable("Stats");
+                    b.ToTable("Stats", "PoGoMeter");
                 });
 
             modelBuilder.Entity("PoGoMeter.Model.Stats", b =>

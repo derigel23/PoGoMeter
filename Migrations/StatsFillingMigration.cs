@@ -38,12 +38,18 @@ namespace PoGoMeter.Migrations
     private const short MEGA_OFFSET = 1000;
     
     public const byte MAX_LEVEL = 51 * 2 - 1;
-    
-    public async Task Run(bool clearData = false, CancellationToken cancellationToken = default)
+
+    public async Task Clear(CancellationToken cancellationToken = default)
     {
       await ClearEntities<Stats>(cancellationToken);
       await ClearEntities<BaseStats>(cancellationToken);
       await ClearEntities<PokemonName>(cancellationToken);
+    }
+
+    public async Task Run(bool clearData = false, CancellationToken cancellationToken = default)
+    {
+      if (clearData)
+        await Clear(cancellationToken);
 
       var names = new Pokemons();
       using var bulkCopy = new SqlBulkCopy(myConnectionString, SqlBulkCopyOptions.TableLock | SqlBulkCopyOptions.FireTriggers | SqlBulkCopyOptions.UseInternalTransaction | SqlBulkCopyOptions.KeepIdentity) { EnableStreaming = true };
@@ -89,7 +95,7 @@ namespace PoGoMeter.Migrations
           if (settings == null) continue;
           if (settings.ContainsKey(@"form")) continue; // 'form' no custom form currently
 
-          (short? baseAttack, short? baseDefense, short? baseStamina) GetBaseStats(dynamic root)
+          static (short? baseAttack, short? baseDefense, short? baseStamina) GetBaseStats(dynamic root)
           {
             var stats = root[@"stats"];
             short? baseAttack = stats[@"baseAttack"];
@@ -98,15 +104,18 @@ namespace PoGoMeter.Migrations
             return (baseAttack, baseDefense, baseStamina);
           }
 
-          if (!(GetBaseStats(settings) is (short atk, short def, short sta)))
+          if (GetBaseStats(settings) is not (short atk, short def, short sta))
           {
             await Console.Error.WriteLineAsync($"Unknown stats for {pokemon,4} {name}");
             continue;
           }
 
-          var pokemonBaseStats = new List<(short, (short, short, short))>(1)
+          decimal height = settings[@"pokedexHeightM"];
+          decimal weigth = settings[@"pokedexWeightKg"];
+          
+          var pokemonBaseStats = new List<BaseStats>(1)
           {
-            (pokemon, (atk, def, sta))
+            new() { Pokemon = pokemon, Attack = atk, Defense = def, Stamina = sta, Height = height, Weight = weigth }
           };
           var pokemonNames = new List<PokemonName>(1)
           {
@@ -137,13 +146,30 @@ namespace PoGoMeter.Migrations
                   megaName = $"Mega {name} Y";
                   pokemonNames.Add(new PokemonName {Pokemon = pokemonNumber, Name = megaName});
                   break;
+                case "TEMP_EVOLUTION_PRIMAL":
+                  megaName = $"Primal {name}";
+                  pokemonNames.Add(new PokemonName {Pokemon = pokemonNumber, Name = megaName});
+                  break;
+                case null:
+                  continue; 
                 default:
                   throw new ArgumentOutOfRangeException("megaForm", "Unknown pokemon mega form");
               }
 
+              decimal megaHeight = megaForm[@"averageHeightM"];
+              decimal megaWeight = megaForm[@"averageWeightKg"];
+
               if (GetBaseStats(megaForm) is (short megaAtk, short megaDef, short megaSta))
               {
-                pokemonBaseStats.Add((pokemonNumber, (megaAtk, megaDef, megaSta)));
+                pokemonBaseStats.Add(new BaseStats
+                {
+                  Pokemon = pokemonNumber,
+                  Attack = megaAtk,
+                  Defense = megaDef,
+                  Stamina = megaSta,
+                  Height = megaHeight,
+                  Weight = megaWeight
+                });
               }
               else
               {
@@ -154,38 +180,29 @@ namespace PoGoMeter.Migrations
 
           await BulkCopy(bulkCopy, pokemonNames, cancellationToken);
 
-          foreach (var (pokemonNumber, (baseAttack, baseDefense, baseStamina)) in pokemonBaseStats)
+          foreach (var @base in pokemonBaseStats)
           {
-            var pokemonName = pokemonNames.Single(_ => _.Pokemon == pokemonNumber).Name;
-            await BulkCopy(bulkCopy, new[]
-            {
-              new BaseStats
-              {
-                Pokemon = pokemonNumber,
-                Attack = baseAttack,
-                Defense = baseDefense,
-                Stamina = baseStamina
-              }
-            }, cancellationToken);
+            var pokemonName = pokemonNames.Single(t => t.Pokemon == @base.Pokemon).Name;
+            await BulkCopy(bulkCopy, new []  {@base}, cancellationToken);
 
             for (var cpmIndex = Math.Max((byte) 0, LevelMin); cpmIndex < Math.Min(CPMs.Length, LevelMax); cpmIndex++)
             {
               var cpm = CPMs[cpmIndex];
               await Console.Out.WriteLineAsync(
-                $"Pokemon {pokemonNumber,4} Level {cpmIndex / 2m + 1,-5} {pokemonName}");
+                $"Pokemon {@base.Pokemon,4} Level {cpmIndex / 2m + 1,-5} {pokemonName}");
               for (var attackIV = MinIV; attackIV <= MaxIV; attackIV++)
               for (var defenseIV = MinIV; defenseIV <= MaxIV; defenseIV++)
               for (var staminaIV = MinIV; staminaIV <= MaxIV; staminaIV++)
               {
-                var attack = (short) (baseAttack + attackIV);
-                var defense = (short) (baseDefense + defenseIV);
-                var stamina = (short) (baseStamina + staminaIV);
+                var attack = (short) (@base.Attack + attackIV);
+                var defense = (short) (@base.Defense + defenseIV);
+                var stamina = (short) (@base.Stamina + staminaIV);
 
                 var cp = attack * Math.Sqrt(defense) * Math.Sqrt(stamina) * cpm * cpm / 10;
                 var CP = Math.Max((short) 10, (short) Math.Floor(cp));
                 records.Add(new Stats
                 {
-                  Pokemon = pokemonNumber,
+                  Pokemon = @base.Pokemon,
                   AttackIV = attackIV,
                   DefenseIV = defenseIV,
                   StaminaIV = staminaIV,

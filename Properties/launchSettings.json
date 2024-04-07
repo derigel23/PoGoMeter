@@ -11,6 +11,11 @@
     "ClearAndInitData": {
       "commandName": "Project",
       "commandLineArgs": "--ClearData true --InitData true"
+    },
+    
+    "ClearData": {
+      "commandName": "Project",
+      "commandLineArgs": "--ClearData true"
     }
 
   }

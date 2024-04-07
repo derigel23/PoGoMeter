@@ -19,14 +19,26 @@ namespace PoGoMeter
       using (var serviceScope = webHost.Services.CreateScope())
       {
         var configuration = serviceScope.ServiceProvider.GetService<IConfiguration>();
+        
+        var clearData = configuration.GetValue("ClearData", false);
         if (configuration.GetValue("InitData", false))
         {
           var fillingMigration = new StatsFillingMigration(serviceScope.ServiceProvider.GetService<PoGoMeterContext>(),
             configuration.GetConnectionString("PoGoMeterDatabase"));
           
-          await fillingMigration.Run(configuration.GetValue("ClearData", false), cancellationToken);
+          await fillingMigration.Run(clearData, cancellationToken);
           return;
         }
+
+        if (clearData)
+        {
+          var fillingMigration = new StatsFillingMigration(serviceScope.ServiceProvider.GetService<PoGoMeterContext>(),
+            configuration.GetConnectionString("PoGoMeterDatabase"));
+          
+          await fillingMigration.Clear(cancellationToken);
+          return;
+        }
+
       }
       
       await webHost.RunAsync(cancellationToken);
